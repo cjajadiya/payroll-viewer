@@ -194,8 +194,9 @@ function excelToDate(serial) {
 }
 function fmtHrs(n) { return (Math.round((n||0) * 100) / 100).toFixed(2); }
 function formatName(raw) {
+  if (!raw) return 'Unknown';
   const p = raw.split(',');
-  return p.length === 2 ? p[1].trim() + ' ' + p[0].trim() : raw;
+  return p.length === 2 ? p[1].trim() + ' ' + p[0].trim() : raw.trim();
 }
 function dateKey(d) {
   if (!d) return '';
@@ -214,17 +215,21 @@ function processFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+      // RESTORED: cellDates: false is critical to prevent SheetJS from manipulating raw Excel date serials
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: false });
+      // RESTORED: raw: true is critical so numbers stay numbers and don't convert to localized strings
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: true });
       parseAndRender(rows);
     } catch(err) {
+      console.error(err);
       errMsg.textContent = 'Could not process this file. Verify format.';
     }
   };
   reader.readAsArrayBuffer(file);
 }
 
-const namePat = /^[A-Za-zÀ-ÖØ-öø-ÿ'\-]+,\s+[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+/;
+// RESTORED & IMPROVED: More forgiving regex for POS employee names
+const namePat = /^[A-Za-zÀ-ÖØ-öø-ÿ'\-]+(?:\s*,\s*|\s+)[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+/;
 
 function parseAndRender(rows) {
   let period = '', headerIdx = -1, riC = 6, oiC = 8;
@@ -244,16 +249,24 @@ function parseAndRender(rows) {
 
   const employees = [];
   let cur = null;
-  for (let i = (headerIdx >= 0 ? headerIdx + 1 : 4); i < rows.length; i++) {
+  
+  // RESTORED: Better starting row detection
+  let startRow = headerIdx >= 0 ? headerIdx + 1 : 1;
+
+  for (let i = startRow; i < rows.length; i++) {
     const row = rows[i];
     const first = String(row[0]||'').trim();
+    
     if (!first || first === 'Total' || first.startsWith('If you are using')) continue;
+    
     if (namePat.test(first)) {
       cur = { id: 'emp_' + employees.length, name: first, shifts: [] };
       employees.push(cur);
     } else if (cur) {
       const ciRaw = row[2];
       const ci = parseFloat(ciRaw);
+      
+      // ci > 0 relies on raw: true being passed to sheet_to_json so dates remain floats!
       if (ci > 0) {
         const parsedReg = parseFloat(row[riC]) || 0;
         const parsedOt  = parseFloat(row[oiC]) || 0;
@@ -266,7 +279,11 @@ function parseAndRender(rows) {
     }
   }
 
-  if (!employees.length) { errMsg.textContent = 'No records found.'; return; }
+  if (!employees.length) { 
+    errMsg.textContent = 'No records found. Make sure your file matches the POS export format.'; 
+    return; 
+  }
+  
   parsedEmployees = employees;
   
   const empSel = document.getElementById('filter-emp');

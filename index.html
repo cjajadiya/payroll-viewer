@@ -1,238 +1,1199 @@
 ﻿<!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-50">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Payroll Viewer — The Chopped Leaf CL113</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Payroll Viewer — The Chopped Leaf CL113</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:         #F7F8FA;
+  --surface:    #FFFFFF;
+  --surface2:   #F1F3F5;
+  --surface3:   #E9ECEF;
+  --border:     #E2E6EA;
+  --border-md:  #CDD3D8;
+  --text:       #1C2530;
+  --text-2:     #3D4F61;
+  --muted:      #697889;
+  --accent:     #2ECC71;
+  --accent-dk:  #1E8449;
+  --accent-lt:  #EAFAF1;
+  --blue:       #1A73E8;
+  --blue-lt:    #EAF2FB;
+  --blue-bdr:   #A8D1F5;
+
+  --warn-bg:    #FFF8F0;
+  --warn-text:  #C0540A;
+  --warn-border:#F5C492;
+  --danger-bg:  #FFF5F5;
+  --danger-text:#B92929;
+  --danger-bdr: #F5B8B8;
+  --miss-bg:    #FFF0F6;
+  --miss-text:  #A0174A;
+  --miss-bdr:   #F5C6D8;
+  --ok-bg:      #EAFAF1;
+  --ok-text:    #1E8449;
+  --ok-bdr:     #A9DFBF;
+  --gap-bg:     #F4F0FF;
+  --gap-text:   #5B34C4;
+  --gap-bdr:    #D8CCFF;
+  --r:          7px;
+  --rs:         5px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow:    0 2px 8px rgba(0,0,0,0.07);
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; padding: 0 0 5rem;
+  font-size: 14px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.shell { max-width: 1300px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* ── HEADER ── */
+.site-header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+.header-inner {
+  max-width: 1300px; margin: 0 auto; padding: 0 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 58px; gap: 12px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.logo-wrap {
+  width: 34px; height: 34px; background: #fff;
+  border-radius: var(--rs); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
+}
+.logo-wrap img { width: 30px; height: 30px; object-fit: contain; }
+.brand-name { font-size: 14px; font-weight: 650; letter-spacing: -0.01em; color: var(--text); }
+.brand-sub  { font-size: 11px; color: var(--muted); line-height: 1.3; }
+.store-tag  {
+  font-size: 11px; font-weight: 600;
+  color: var(--accent-dk); background: var(--accent-lt);
+  border: 1px solid #C0E8D0; border-radius: 99px; padding: 3px 11px;
+  letter-spacing: 0.01em;
+}
+
+/* ── CONTEXT BANNER ── */
+.audit-banner {
+  background: var(--surface); color: var(--text);
+  padding: 0.9rem 1.25rem; border-radius: var(--r);
+  margin-bottom: 1.25rem; display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  border: 1px solid var(--border);
+  position: sticky; top: 59px; z-index: 90;
+  box-shadow: var(--shadow);
+}
+.audit-banner-info { display: flex; flex-direction: column; gap: 1px; }
+.audit-banner-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; }
+.audit-banner-name { font-size: 15px; font-weight: 650; display: flex; align-items: center; gap: 8px; color: var(--text); }
+.audit-banner-meta { font-size: 12.5px; color: var(--muted); }
+
+/* ── DEBUG TERMINAL ── */
+.debug-panel {
+  background: #1C2530; color: #51CF66; font-family: monospace;
+  font-size: 11px; padding: 6px 12px; border-radius: var(--rs); margin-bottom: 1.25rem;
+  display: flex; gap: 20px; flex-wrap: wrap; border: 1px solid #2D3E50;
+}
+.debug-item span { color: #fff; }
+
+main { padding: 1.25rem 0; }
+
+/* ── FILE DROP ZONE ── */
+.drop-zone {
+  background: var(--surface); border: 1.5px dashed var(--border-md);
+  border-radius: var(--r); padding: 3.5rem 2rem; text-align: center;
+  cursor: pointer; transition: border-color 0.15s, background 0.15s; position: relative;
+  margin: 1.5rem 0;
+}
+.drop-zone:hover, .drop-zone.active {
+  border-color: var(--accent-dk); background: var(--accent-lt);
+}
+.drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.drop-icon {
+  width: 46px; height: 46px; margin: 0 auto 1rem; background: var(--bg);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border);
+}
+.drop-icon svg { width: 20px; height: 20px; stroke: var(--muted); fill: none; stroke-width: 2; }
+.drop-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+.drop-hint  { font-size: 13px; color: var(--muted); }
+.err-msg    { color: var(--danger-text); font-size: 13px; margin-top: 8px; min-height: 18px; text-align: center; }
+
+/* ── SPLIT LAYOUT ── */
+.workspace-layout { display: flex; gap: 1.25rem; align-items: flex-start; }
+.main-content-flow { flex: 1; min-width: 0; }
+
+/* ── SIDE PANEL ── */
+.side-summary-panel {
+  width: 340px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.1rem; position: sticky; top: 155px;
+  display: none; box-shadow: var(--shadow-sm); flex-shrink: 0;
+}
+.side-summary-panel.active { display: block; }
+.side-title {
+  font-size: 11px; font-weight: 700; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+.side-scroll-area { max-height: 540px; overflow-y: auto; padding-right: 2px; }
+
+.side-stats-block {
+  background: var(--blue-lt); border: 1px solid var(--blue-bdr); border-radius: var(--rs);
+  padding: 0.75rem; margin-bottom: 0.9rem;
+}
+.side-stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; }
+.side-stat-lbl { color: var(--muted); }
+.side-stat-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+.side-stat-val.grand { color: var(--blue); font-size: 15px; }
+
+.week-container {
+  border: 1px solid var(--border); border-radius: var(--rs);
+  margin-bottom: 0.65rem; overflow: hidden; background: var(--surface);
+}
+.week-header-bar {
+  background: var(--surface2); padding: 6px 10px; font-size: 11.5px; font-weight: 650;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.week-header-title { color: var(--text-2); }
+.week-header-total { font-weight: 700; color: var(--blue); font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.week-days-list { padding: 3px 0; }
+.side-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 10px; font-size: 12.5px;
+}
+.side-item:not(:last-child) { border-bottom: 1px dashed var(--border); }
+.side-date { color: var(--text-2); }
+.side-hours { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+.side-hours.zero { color: var(--border-md); font-weight: 400; }
+
+/* ── SETTINGS PANEL ── */
+.controls-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1rem 1.25rem; margin-bottom: 1.1rem;
+}
+.controls-title {
+  font-size: 10.5px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem;
+  display: flex; align-items: center; gap: 6px;
+}
+.controls-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.ctrl-group { display: flex; flex-direction: column; gap: 3px; }
+.ctrl-label { font-size: 10.5px; font-weight: 600; color: var(--muted); }
+.ctrl-input {
+  font-size: 13px; padding: 5px 9px; border: 1px solid var(--border-md);
+  border-radius: var(--rs); background: var(--surface); color: var(--text);
+  width: 100%; transition: border-color 0.12s;
+}
+.ctrl-input:focus { outline: none; border-color: var(--text); }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 0.9rem 1.25rem; margin-bottom: 1.1rem;
+}
+.filter-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.filter-group { display: flex; flex-direction: column; gap: 3px; min-width: 135px; }
+.filter-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.filter-select {
+  font-size: 13px; padding: 5px 9px; border: 1px solid var(--border-md);
+  border-radius: var(--rs); background: var(--surface); color: var(--text);
+  height: 31px;
+}
+.filter-select:focus { outline: none; border-color: var(--text); }
+.filter-checks { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+.fcheck { display: flex; align-items: center; gap: 5px; font-size: 12.5px; cursor: pointer; color: var(--text-2); }
+.fcheck input { accent-color: var(--text); }
+
+/* ── RESULTS BAR ── */
+.results-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.9rem; flex-wrap: wrap; gap: 8px;
+}
+.period-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 99px; padding: 4px 12px; font-size: 12px; color: var(--muted);
+}
+.period-pill svg { width: 12px; height: 12px; stroke: var(--muted); fill: none; stroke-width: 2; }
+.actions { display: flex; gap: 7px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 550; padding: 5px 12px;
+  border-radius: var(--rs); border: 1px solid var(--border-md);
+  background: var(--surface); color: var(--text);
+  cursor: pointer; transition: background 0.1s, border-color 0.1s;
+}
+.btn:hover { background: var(--bg); border-color: var(--text); }
+.btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
+.btn-primary:hover { background: #000; border-color: #000; }
+.btn-sm { font-size: 12px; padding: 4px 10px; }
+
+/* ── SCORECARD METRICS ── */
+.audit-grid {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px; margin-bottom: 1rem;
+}
+.metric-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 0.8rem 1rem;
+}
+.metric-card.hi-tot  { background: var(--blue-lt);  border-color: var(--blue-bdr); }
+.metric-card.hi-warn { background: var(--warn-bg);  border-color: var(--warn-border); }
+.metric-card.hi-miss { background: var(--miss-bg);  border-color: var(--miss-bdr); }
+.metric-label { font-size: 9.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+.metric-value { font-size: 22px; font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1.1; }
+.metric-value.blue { color: var(--blue); }
+.metric-value.warn { color: var(--warn-text); }
+.metric-value.miss { color: var(--miss-text); }
+.metric-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ── GRAND TOTAL BAR ── */
+.hours-summary-box {
+  background: var(--surface); border: 1px solid var(--border-md); border-radius: var(--r);
+  padding: 0.85rem 1.25rem; margin-bottom: 1.1rem;
+  display: flex; justify-content: space-between; align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+.hours-summary-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.hours-summary-value { font-size: 22px; font-weight: 700; color: var(--blue); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.hours-scope-note { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+/* ── LEGEND ── */
+.legend { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+.legend-dot  { width: 7px; height: 7px; border-radius: 50%; }
+.ld-reg  { background: var(--border-md); }
+.ld-tot  { background: var(--blue-bdr); }
+.ld-miss { background: var(--miss-bdr); }
+.ld-warn { background: var(--warn-border); }
+
+/* ── MAIN TABLE ── */
+.table-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden; margin-bottom: 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+thead th {
+  background: var(--surface2); font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 9px 14px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  text-align: left;
+}
+thead th.num { text-align: right; }
+
+.emp-row { cursor: pointer; transition: background 0.1s; }
+.emp-row:hover td { background: #FAFBFC; }
+.emp-row.is-active td { background: var(--accent-lt) !important; }
+.emp-row.is-active:hover td { background: #E0F7EA !important; }
+.emp-row td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.emp-row td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.emp-row.has-flags td:first-child   { border-left: 3px solid var(--warn-border); }
+.emp-row.has-critical td:first-child { border-left: 3px solid var(--miss-bdr); }
+
+.emp-name-wrap { display: flex; align-items: center; gap: 10px; }
+.emp-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.emp-row.is-active .emp-avatar { background: var(--surface); color: var(--accent-dk); border-color: #A9DFBF; }
+.emp-name { font-weight: 600; font-size: 13.5px; color: var(--text); }
+.emp-role-badge {
+  display: inline-block; font-size: 10px; font-weight: 500;
+  padding: 1px 6px; border-radius: 4px; background: var(--surface2);
+  color: var(--muted); margin-top: 1px;
+}
+.emp-flags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+.flag-pill {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9.5px; font-weight: 600; padding: 1px 6px;
+  border-radius: 4px; border: 1px solid transparent;
+}
+.flag-miss { background: var(--miss-bg); color: var(--miss-text); border-color: var(--miss-bdr); }
+.flag-warn { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn-border); }
+.flag-ok   { background: var(--ok-bg);   color: var(--ok-text);   border-color: var(--ok-bdr); }
+.flag-gap  { background: var(--gap-bg);  color: var(--gap-text);  border-color: var(--gap-bdr); }
+.flag-long { background: #FFF5E0; color: #7A3B00; border-color: #F5C278; }
+
+.chevron { transition: transform 0.15s; color: var(--muted); margin-left: auto; flex-shrink: 0; opacity: 0.55; }
+.chevron.open { transform: rotate(90deg); color: var(--text); opacity: 1; }
+
+.cell-tot  { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.cell-zero { color: var(--border-md); font-variant-numeric: tabular-nums; }
+
+/* ── ACTION BUTTONS ── */
+.copy-btn-wrap { display: inline-flex; align-items: center; justify-content: flex-end; width: 100%; gap: 6px; }
+.copy-icon-btn {
+  background: var(--surface); border: 1px solid var(--border-md); color: var(--muted);
+  width: 28px; height: 28px; border-radius: var(--rs); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s; position: relative;
+}
+.copy-icon-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--text); }
+.copy-icon-btn svg { width: 13px; height: 13px; transition: transform 0.15s ease; fill: none; stroke: currentColor; stroke-width: 2; }
+.copy-icon-btn:active svg { transform: scale(0.85); }
+.copy-icon-btn.copied {
+  background: var(--accent-lt); color: var(--accent-dk); border-color: var(--accent);
+  animation: pulseCheck 0.28s ease-in-out;
+}
+@keyframes pulseCheck {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.copy-tooltip {
+  position: absolute; bottom: calc(100% + 4px); right: 0; background: #1C2530; color: #fff;
+  font-size: 10px; padding: 3px 7px; border-radius: 4px; pointer-events: none;
+  opacity: 0; transition: opacity 0.15s ease; white-space: nowrap; font-weight: 500;
+}
+.copy-icon-btn.copied .copy-tooltip { opacity: 1; }
+
+/* ── EDIT INPUTS ── */
+.edit-hour-input {
+  width: 68px; padding: 4px 7px; font-size: 13px; text-align: right;
+  border: 1px solid var(--border-md); border-radius: var(--rs);
+  font-variant-numeric: tabular-nums; font-family: monospace; background: var(--surface);
+  transition: border-color 0.12s, background 0.12s;
+}
+.edit-hour-input:focus { outline: none; border-color: var(--text); background: #FFFBE6; }
+.edit-hour-input.edited { border-color: var(--accent); background: var(--accent-lt); }
+
+/* ── EXPANDED SHIFT GROUPS ── */
+/* ═══════════════════════════════════════════════════════════════
+   DATE & SHIFT SEQUENCES · BREAKS · EDITABLE HOURS
+   Full redesign — unified typography hierarchy, clean layout
+   ═══════════════════════════════════════════════════════════════ */
+
+.shift-group { display: none; }
+.shift-group.open { display: table-row-group; }
+
+/* ── Section header row ── */
+.shift-header-row td {
+  background: var(--surface2);
+  padding: 9px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+}
+
+/* ── Date header row ── */
+.day-header-row td {
+  background: var(--surface);
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  border-top: 2px solid var(--border-md);
+}
+.day-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  flex-wrap: wrap;
+}
+.day-header-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+.day-hours-pill {
+  background: var(--blue-lt);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--blue-bdr);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.day-flag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border: 1px solid var(--warn-border);
+  line-height: 1.6;
+}
+.day-flag.flag-miss {
+  background: var(--miss-bg);
+  color: var(--miss-text);
+  border-color: var(--miss-bdr);
+}
+
+/* ── Individual shift row ── */
+.shift-row td {
+  padding: 10px 16px;
+  background: #FDFEFE;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.shift-row.warn-long td { background: var(--warn-bg); }
+
+.shift-inner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 44px;
+}
+.shift-index-col {
+  width: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+}
+.shift-seq-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  flex-shrink: 0;
+  line-height: 1;
+}
+.shift-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+  padding-left: 10px;
+}
+.shift-time {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.shift-time .arrow {
+  color: var(--border-md);
+  font-weight: 400;
+  font-size: 12px;
+  margin: 0 2px;
+}
+.shift-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  line-height: 1.4;
+}
+.shift-seq-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.shift-role-text {
+  font-size: 11px;
+  color: var(--muted);
+}
+.shift-meta-dot {
+  color: var(--border-md);
+  font-size: 10px;
+  line-height: 1;
+}
+.adj-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  background: #FFE3E3;
+  color: #B92929;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+.shift-flags-line {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 1px;
+}
+.shift-hours-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  margin-left: auto;
+  padding-left: 16px;
+  flex-shrink: 0;
+}
+.shift-hours-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+}
+
+/* ── Editable hours input ── */
+.edit-hour-input {
+  width: 76px;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  border: 1px solid var(--border-md);
+  border-radius: var(--rs);
+  font-variant-numeric: tabular-nums;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+  -moz-appearance: textfield;
+  appearance: textfield;
+  line-height: 1.4;
+}
+.edit-hour-input::-webkit-inner-spin-button,
+.edit-hour-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.edit-hour-input:hover { border-color: var(--border-md); background: var(--surface2); }
+.edit-hour-input:focus {
+  outline: none;
+  border-color: var(--blue);
+  background: var(--blue-lt);
+  box-shadow: 0 0 0 3px rgba(26,115,232,0.10);
+}
+.edit-hour-input.edited {
+  border-color: var(--accent);
+  background: var(--accent-lt);
+  color: var(--accent-dk);
+}
+
+/* ── Break / gap rows ── */
+.break-row td {
+  padding: 7px 16px 7px 44px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.break-row.break-miss  td { background: var(--miss-bg);  border-left: 3px solid var(--miss-bdr); }
+.break-row.break-short td { background: var(--warn-bg);  border-left: 3px solid var(--warn-border); }
+.break-row.break-long  td { background: #FFFAF0;          border-left: 3px solid #F5C278; }
+.break-row.break-ok    td { background: var(--ok-bg);    border-left: 3px solid var(--ok-bdr); }
+
+.break-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.break-icon {
+  font-size: 11px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.break-label {
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+.break-times {
+  font-size: 10.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.break-dur {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ── Multi-punch warning row ── */
+.consec-warn-row td {
+  background: var(--miss-bg);
+  border-left: 3px solid var(--miss-bdr);
+  padding: 7px 16px;
+  font-size: 11px;
+  color: var(--miss-text);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.5;
+}
+
+/* ── Debug row ── */
+.debug-row td {
+  background: #F8F0FC;
+  border-left: 3px solid #EEBEEA;
+  padding: 5px 16px 5px 44px;
+  font-size: 10.5px;
+  color: #862E9C;
+  border-bottom: 1px solid var(--border);
+  font-family: monospace;
+}
+
+/* ── WEEKLY SUMMARY SECTION ── */
+.restaurant-summary-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.1rem 1.25rem;
+  margin-top: 1.25rem; margin-bottom: 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+.restaurant-summary-title {
+  font-size: 10.5px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.weekly-breakdown-card {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 0.9rem; margin-bottom: 0.9rem;
+}
+.weekly-breakdown-card:last-child { margin-bottom: 0; }
+.weekly-breakdown-header {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12.5px; font-weight: 700; color: var(--text);
+  padding-bottom: 7px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+}
+.weekly-breakdown-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 6px; margin-bottom: 9px;
+}
+.weekly-emp-row {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--rs);
+  padding: 6px 10px; display: flex; justify-content: space-between;
+  align-items: center; font-size: 12.5px;
+}
+.weekly-emp-name { font-weight: 500; color: var(--text-2); }
+.weekly-emp-hrs  { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.weekly-grand-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12.5px; font-weight: 700; padding-top: 7px;
+  border-top: 1px solid var(--border-md); color: var(--text);
+}
+.weekly-grand-row strong { color: var(--blue); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+/* ── DAILY MATRIX ── */
+.daily-table-hdr {
+  background: var(--surface2) !important; cursor: pointer;
+  transition: background 0.1s;
+}
+.daily-table-hdr:hover { background: var(--surface3) !important; }
+.daily-table-hdr.expanded { background: var(--surface) !important; }
+.daily-table-hdr.expanded .chevron { transform: rotate(90deg); opacity: 1; }
+.daily-expansion-box { background: #FAFBFC; border-top: 1px solid var(--border); padding: 10px 18px; }
+.daily-drilldown-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 7px;
+}
+.daily-drilldown-item {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--rs);
+  padding: 6px 11px; display: flex; justify-content: space-between;
+  align-items: center; font-size: 12.5px;
+}
+.daily-drilldown-item .drilldown-name { color: var(--text-2); font-weight: 500; }
+.daily-drilldown-item .drilldown-hrs { color: var(--blue); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ── TABLE FOOTER ── */
+tfoot td {
+  padding: 11px 14px; border-top: 2px solid var(--border-md);
+  font-weight: 650; background: var(--surface2);
+}
+tfoot td.num { text-align: right; font-variant-numeric: tabular-nums; }
+tfoot .lbl { font-size: 10.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+tfoot .foot-total { font-size: 15px; color: var(--blue); font-weight: 700; }
+
+.reset-bar { margin-top: 2rem; text-align: center; }
+.reset-link { font-size: 13px; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; padding: 4px 8px; }
+.reset-link:hover { color: var(--text); }
+
+.no-results {
+  text-align: center; padding: 2rem; color: var(--muted); font-size: 13px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+}
+
+/* ── SECTION DIVIDERS ── */
+.section-label {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  padding: 0 4px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── PRINT ── */
+@media print {
+  .site-header, .audit-banner, .debug-panel, #upload-section, .actions, .reset-bar,
+  .controls-panel, .filter-bar, .side-summary-panel { display: none !important; }
+  #results { display: block !important; }
+  .shift-group { display: table-row-group !important; }
+  .chevron { display: none; }
+  body { background: #fff; }
+  .workspace-layout { display: block; }
+  .table-card, .restaurant-summary-panel { box-shadow: none; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 992px) {
+  .workspace-layout { flex-direction: column; }
+  .side-summary-panel { width: 100%; position: static; }
+}
+@media (max-width: 768px) {
+  .audit-grid { grid-template-columns: repeat(2, 1fr); }
+  .header-inner { height: auto; padding: 10px 1rem; flex-wrap: wrap; }
+  .shell { padding: 0 1rem; }
+}
+</style>
 </head>
-<body class="h-full text-slate-800 antialiased flex flex-col font-sans">
+<body>
 
-  <!-- HEADER -->
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur shadow-sm">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-lg shadow-sm">
-          CL
-        </div>
-        <div>
-          <h1 class="text-base font-semibold leading-tight text-slate-900">The Chopped Leaf</h1>
-          <p class="text-xs text-slate-500">Payroll Viewer & Compliance Engine</p>
-        </div>
-      </div>
-      <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-        CL113 &middot; Dartmouth Crossing
-      </span>
-    </div>
-  </header>
-
-  <!-- MAIN Shell -->
-  <main class="flex-1 pb-16 pt-6">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
-
-      <!-- UPLOAD DROP ZONE -->
-      <section id="upload-section" class="rounded-xl border-2 border-dashed border-slate-300 bg-white p-8 sm:p-12 text-center transition hover:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20">
-        <div class="mx-auto flex max-w-xs flex-col items-center">
-          <div class="rounded-full bg-slate-100 p-3 text-slate-600 mb-3">
-            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-            </svg>
-          </div>
-          <label for="file-input" class="cursor-pointer text-sm font-semibold text-emerald-600 hover:text-emerald-500 focus-within:outline-none">
-            <span>Drop your Time Card Detail file here</span>
-            <input id="file-input" type="file" accept=".xlsx,.xls,.csv" class="sr-only">
-          </label>
-          <p class="mt-1 text-xs text-slate-500">or click to browse &mdash; .xlsx, .xls, or .csv</p>
-          <p id="err-msg" class="mt-3 text-xs text-rose-600 font-medium"></p>
-        </div>
-      </section>
-
-      <!-- RESULTS DASHBOARD -->
-      <div id="results" class="hidden space-y-6">
-
-        <!-- ACTIVE AUDIT BANNER -->
-        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center justify-between">
-          <div>
-            <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Active View</div>
-            <div class="text-lg font-bold text-slate-900" id="audit-headline-name">All Employees</div>
-            <div class="text-xs text-slate-500" id="audit-headline-meta">Combined store statistics across all records.</div>
-          </div>
-          <button class="hidden text-xs bg-slate-100 hover:bg-slate-200 font-semibold px-3 py-1.5 rounded-md border border-slate-300" id="btn-clear-selection" onclick="selectEmployee(null)">
-            ✕ Back to Store View
-          </button>
-        </div>
-
-        <!-- BREAK COMPLIANCE CONTROLS -->
-        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Break Compliance Rules</div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            <div>
-              <label class="block text-xs text-slate-500 font-medium">Min break (min)</label>
-              <input type="number" id="min-break" value="25" class="mt-1 block w-full rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label class="block text-xs text-slate-500 font-medium">Max break (min)</label>
-              <input type="number" id="max-break" value="35" class="mt-1 block w-full rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label class="block text-xs text-slate-500 font-medium">Long shift (hrs)</label>
-              <input type="number" id="long-shift" value="5" step="0.5" class="mt-1 block w-full rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label class="block text-xs text-slate-500 font-medium">Min gap (min)</label>
-              <input type="number" id="gap-min" value="25" class="mt-1 block w-full rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label class="block text-xs text-slate-500 font-medium">Max gap (min)</label>
-              <input type="number" id="gap-max" value="35" class="mt-1 block w-full rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
-            </div>
-            <div class="flex items-end">
-              <button onclick="applySettings()" class="w-full h-8 rounded-md bg-slate-900 text-xs font-semibold text-white shadow hover:bg-slate-800 transition">
-                Apply Rules
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <!-- FILTERS BAR -->
-        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-wrap gap-4 items-end justify-between">
-          <div class="flex flex-wrap gap-3 items-end">
-            <div>
-              <label class="block text-xs text-slate-500 font-medium">Employee</label>
-              <select id="filter-emp" onchange="handleDropdownSelection(this.value)" class="mt-1 block w-40 rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                <option value="">All employees</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs text-slate-500 font-medium">Date From</label>
-              <input type="date" id="filter-date-from" onchange="applyFilters()" class="mt-1 block rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label class="block text-xs text-slate-500 font-medium">Date To</label>
-              <input type="date" id="filter-date-to" onchange="applyFilters()" class="mt-1 block rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="exportCSV()" class="px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700">Export CSV</button>
-            <button onclick="window.print()" class="px-3 py-1.5 text-xs font-semibold rounded-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">Print Summary</button>
-          </div>
-        </section>
-
-        <!-- METRICS CARDS -->
-        <section class="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-            <div class="text-[10px] font-bold uppercase text-slate-400">Shifts Reviewed</div>
-            <div class="text-xl font-bold text-slate-800" id="aud-shifts">—</div>
-            <div class="text-[11px] text-slate-400" id="aud-shifts-sub"></div>
-          </div>
-          <div class="rounded-xl border border-rose-200 bg-rose-50/50 p-3 shadow-sm">
-            <div class="text-[10px] font-bold uppercase text-rose-600">Missing Breaks</div>
-            <div class="text-xl font-bold text-rose-700" id="aud-miss">—</div>
-            <div class="text-[11px] text-rose-500" id="aud-miss-sub"></div>
-          </div>
-          <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-3 shadow-sm">
-            <div class="text-[10px] font-bold uppercase text-amber-600">Out of Range</div>
-            <div class="text-xl font-bold text-amber-700" id="aud-range">—</div>
-            <div class="text-[11px] text-amber-500" id="aud-range-sub"></div>
-          </div>
-          <div class="rounded-xl border border-orange-200 bg-orange-50/50 p-3 shadow-sm">
-            <div class="text-[10px] font-bold uppercase text-orange-600">Long Shifts</div>
-            <div class="text-xl font-bold text-orange-700" id="aud-long">—</div>
-            <div class="text-[11px] text-orange-500" id="aud-long-sub"></div>
-          </div>
-          <div class="rounded-xl border border-purple-200 bg-purple-50/50 p-3 shadow-sm">
-            <div class="text-[10px] font-bold uppercase text-purple-600">Unusual Gaps</div>
-            <div class="text-xl font-bold text-purple-700" id="aud-gaps">—</div>
-            <div class="text-[11px] text-purple-500" id="aud-gaps-sub"></div>
-          </div>
-        </section>
-
-        <!-- TOTAL HOURS SUMMARY -->
-        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex justify-between items-center">
-          <div>
-            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Hours &mdash; Active Scope</div>
-            <div class="text-xs text-slate-500" id="hours-scope-note"></div>
-          </div>
-          <div class="text-2xl font-bold text-emerald-600 font-mono" id="restaurant-grand-hours">0.00 hrs</div>
-        </div>
-
-        <!-- TABLE SECTION -->
-        <section class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead class="bg-slate-50 border-b border-slate-200 font-semibold uppercase text-slate-500">
-              <tr>
-                <th class="px-4 py-3">Employee</th>
-                <th class="px-4 py-3 text-right">Total Hours</th>
-                <th class="px-4 py-3 text-right w-16">Copy</th>
-              </tr>
-            </thead>
-            <tbody id="emp-body" class="divide-y divide-slate-100"></tbody>
-          </table>
-        </section>
-
-        <!-- RESET -->
-        <div class="text-center pt-4">
-          <button onclick="resetTool()" class="text-xs text-slate-400 hover:text-slate-600 underline">← Upload a different file</button>
-        </div>
-
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="logo-wrap"><img id="logo-img" alt="Chopped Leaf" /></div>
+      <div>
+        <div class="brand-name">The Chopped Leaf</div>
+        <div class="brand-sub">Payroll Viewer</div>
       </div>
     </div>
-  </main>
+    <div class="store-tag">CL113 &middot; Dartmouth Crossing</div>
+  </div>
+</header>
+
+<main>
+<div class="shell">
+
+<div id="upload-section">
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="file-input" accept=".xlsx,.xls,.csv" />
+    <div class="drop-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <div class="drop-title">Drop your Time Card Detail file here</div>
+    <div class="drop-hint">or click to browse &mdash; .xlsx, .xls, or .csv</div>
+  </div>
+  <div class="err-msg" id="err-msg"></div>
+</div>
+
+<div id="results" style="display:none">
+
+  <div class="debug-panel" id="debug-panel" style="display:none">
+    <div class="debug-item">Selected ID: <span id="db-id">None</span></div>
+    <div class="debug-item">Name: <span id="db-name">All Employees</span></div>
+    <div class="debug-item">Shifts Loaded: <span id="db-count">0</span></div>
+  </div>
+
+  <div class="audit-banner" id="active-audit-banner">
+    <div class="audit-banner-info">
+      <div class="audit-banner-title">Active View</div>
+      <div class="audit-banner-name" id="audit-headline-name">All Employees</div>
+      <div class="audit-banner-meta" id="audit-headline-meta">Combined store statistics across all records.</div>
+    </div>
+    <div>
+      <button class="btn btn-sm" id="btn-clear-selection" onclick="selectEmployee(null)" style="display:none;">
+        ✕ Back to Store View
+      </button>
+    </div>
+  </div>
+
+  <div class="controls-panel">
+    <div class="controls-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
+      Break Compliance Rules
+    </div>
+    <div class="controls-grid">
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="min-break">Min break (min)</label>
+        <input class="ctrl-input" type="number" id="min-break" value="25" min="1" max="120" />
+      </div>
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="max-break">Max break (min)</label>
+        <input class="ctrl-input" type="number" id="max-break" value="35" min="1" max="240" />
+      </div>
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="long-shift">Long shift threshold (hrs)</label>
+        <input class="ctrl-input" type="number" id="long-shift" value="5" min="1" max="14" step="0.5" />
+      </div>
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="gap-min">Min gap (min)</label>
+        <input class="ctrl-input" type="number" id="gap-min" value="25" min="1" max="120" />
+      </div>
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="gap-max">Max gap (min)</label>
+        <input class="ctrl-input" type="number" id="gap-max" value="35" min="1" max="240" />
+      </div>
+      <div class="ctrl-group" style="justify-content:flex-end">
+        <button class="btn btn-primary btn-sm" onclick="applySettings()" style="height:31px; justify-content:center;">
+          Apply Rules
+        </button>
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <label class="fcheck" style="font-size:12px; color: var(--muted)">
+        <input type="checkbox" id="debug-mode" onchange="applySettings()" /> Show debug panel
+      </label>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-row">
+      <div class="filter-group">
+        <div class="filter-label">Employee</div>
+        <select class="filter-select" id="filter-emp" onchange="handleDropdownSelection(this.value)">
+          <option value="">All employees</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Date from</div>
+        <input type="date" class="ctrl-input filter-select" id="filter-date-from" onchange="applyFilters()" style="min-width:130px" />
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Date to</div>
+        <input type="date" class="ctrl-input filter-select" id="filter-date-to" onchange="applyFilters()" style="min-width:130px" />
+      </div>
+      <div class="filter-group" style="flex:1; min-width:200px;">
+        <div class="filter-label">Show only shifts with</div>
+        <div class="filter-checks">
+          <label class="fcheck"><input type="checkbox" id="f-miss-break" onchange="applyFilters()"> Missing break</label>
+          <label class="fcheck"><input type="checkbox" id="f-short-break" onchange="applyFilters()"> Short break</label>
+          <label class="fcheck"><input type="checkbox" id="f-long-break" onchange="applyFilters()"> Long break</label>
+          <label class="fcheck"><input type="checkbox" id="f-long-shift" onchange="applyFilters()"> Long shift</label>
+          <label class="fcheck"><input type="checkbox" id="f-bad-gap" onchange="applyFilters()"> Unusual gap</label>
+        </div>
+      </div>
+      <div class="filter-group" style="justify-content:flex-end">
+        <button class="btn btn-sm" onclick="clearFilters()" style="height:31px;">Clear Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="results-bar">
+    <div class="period-pill" id="period-pill" style="display:none">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span id="period-text"></span>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-primary" onclick="window.print()">Print Summary</button>
+    </div>
+  </div>
+
+  <div class="audit-grid">
+    <div class="metric-card">
+      <div class="metric-label">Shifts reviewed</div>
+      <div class="metric-value" id="aud-shifts">—</div>
+      <div class="metric-sub" id="aud-shifts-sub"></div>
+    </div>
+    <div class="metric-card hi-miss">
+      <div class="metric-label">Missing breaks</div>
+      <div class="metric-value miss" id="aud-miss">—</div>
+      <div class="metric-sub" id="aud-miss-sub"></div>
+    </div>
+    <div class="metric-card hi-warn">
+      <div class="metric-label">Breaks out of range</div>
+      <div class="metric-value warn" id="aud-range">—</div>
+      <div class="metric-sub" id="aud-range-sub"></div>
+    </div>
+    <div class="metric-card" style="background:#FFF8EC;border-color:#F5C278">
+      <div class="metric-label">Long shifts</div>
+      <div class="metric-value" style="color:#7A3B00" id="aud-long">—</div>
+      <div class="metric-sub" id="aud-long-sub"></div>
+    </div>
+    <div class="metric-card" style="background:var(--gap-bg);border-color:var(--gap-bdr)">
+      <div class="metric-label">Unusual gaps</div>
+      <div class="metric-value" style="color:var(--gap-text)" id="aud-gaps">—</div>
+      <div class="metric-sub" id="aud-gaps-sub"></div>
+    </div>
+  </div>
+
+  <div class="hours-summary-box">
+    <div>
+      <div class="hours-summary-title">Total Hours &mdash; Active Scope</div>
+      <div class="hours-scope-note" id="hours-scope-note"></div>
+    </div>
+    <div class="hours-summary-value" id="restaurant-grand-hours">0.00 hrs</div>
+  </div>
+
+  <div class="workspace-layout">
+    <div class="main-content-flow">
+
+      <div class="section-label">Employee Summary</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot ld-reg"></div> Shift component</div>
+        <div class="legend-item"><div class="legend-dot ld-tot"></div> Cumulative worked</div>
+        <div class="legend-item"><div class="legend-dot ld-miss"></div> Missing break</div>
+        <div class="legend-item"><div class="legend-dot ld-warn"></div> Range deviation</div>
+        <span style="font-size:11px;color:var(--muted);margin-left:auto">Click a row to isolate employee</span>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th class="num" style="padding-right:40px;">Total Hours</th>
+              <th class="num" style="padding-right:18px; width:60px;">Copy</th>
+            </tr>
+          </thead>
+          <tbody id="emp-body"></tbody>
+          <tfoot>
+            <tr>
+              <td><span class="lbl" id="foot-scope-label">All employees</span></td>
+              <td class="num" style="padding-right:40px;"><span class="foot-total" id="foot-all">—</span></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="no-results" id="no-results" style="display:none">
+        No records match the selected filters. <button class="reset-link" onclick="clearFilters()">Clear filters</button>
+      </div>
+
+      <div class="section-label" style="margin-top: 1.5rem;">Weekly Breakdown</div>
+      <div class="restaurant-summary-panel" id="restaurant-weekly-panel" style="padding:1rem 1.1rem;">
+        <div class="restaurant-summary-title">
+          <span>Restaurant Weekly Hours by Employee</span>
+        </div>
+        <div id="restaurant-weekly-grid-target"></div>
+      </div>
+
+      <div class="section-label">Daily Matrix</div>
+      <div class="table-card" style="margin-bottom:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th class="num" style="padding-right:30px;">Store Total</th>
+              <th style="width:48px;"></th>
+            </tr>
+          </thead>
+          <tbody id="daily-matrix-body-target"></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <div class="side-summary-panel" id="side-summary-panel">
+      <div class="side-title" id="side-panel-title">Employee Breakdown</div>
+      <div class="side-scroll-area">
+        <div class="side-stats-block" id="side-stats-summary">
+          <div class="side-stat-row">
+            <span class="side-stat-lbl">Total (filtered range):</span>
+            <span class="side-stat-val grand" id="side-summary-grand">0.00 hrs</span>
+          </div>
+          <div class="side-stat-row" style="margin-top:4px;">
+            <span class="side-stat-lbl">Days worked:</span>
+            <span class="side-stat-val" id="side-summary-days">0</span>
+          </div>
+          <div class="side-stat-row" style="margin-top:4px;">
+            <span class="side-stat-lbl">Avg per day:</span>
+            <span class="side-stat-val" id="side-summary-avg">0.00 hrs</span>
+          </div>
+        </div>
+        <div id="side-breakdown-dynamic-target"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="reset-bar">
+    <button class="reset-link" onclick="resetTool()">&uarr; Load a different file</button>
+  </div>
+</div>
+
+</div></main>
 
 <script>
-// STATE
-let parsedEmployees = [];
-let parsedPeriod = '';
-let settings = { minBreak: 25, maxBreak: 35, longShift: 5, gapMin: 25, gapMax: 35 };
-let state = { selectedEmployee: null };
+// ── LOGO ──
+const LOGO_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">' +
+  '<circle cx="100" cy="100" r="96" fill="#2B8A3E"/>' +
+  '<path d="M40 118 Q100 155 160 118 L155 138 Q100 168 45 138 Z" fill="#fff"/>' +
+  '<ellipse cx="78" cy="82" rx="28" ry="36" fill="#A9E34B" transform="rotate(-18 78 82)"/>' +
+  '<ellipse cx="122" cy="78" rx="26" ry="34" fill="#40C057" transform="rotate(15 122 78)"/>' +
+  '<ellipse cx="100" cy="92" rx="18" ry="22" fill="#2B8A3E"/>' +
+  '</svg>';
+document.getElementById('logo-img').src =
+  'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(LOGO_SVG);
 
+// ── STATE ──
+let parsedEmployees = [];  // Single source of truth for all employee/shift data
+let parsedPeriod = '';
+let settings = { minBreak: 25, maxBreak: 35, longShift: 5, gapMin: 25, gapMax: 35, debug: false };
+let state = {
+  selectedEmployee: null,
+  expandedDailyDates: {}
+};
+
+// ── PURE HELPERS ──
 function excelToDate(serial) {
   if (!serial || isNaN(serial)) return null;
   const ms = Date.UTC(1899, 11, 30) + Number(serial) * 86400000;
   return new Date(ms);
 }
+function fmtDateISO(d) {
+  if (!d) return '';
+  return d.getUTCFullYear() + '-' +
+    String(d.getUTCMonth()+1).padStart(2,'0') + '-' +
+    String(d.getUTCDate()).padStart(2,'0');
+}
+function fmtTime(d) {
+  if (!d) return '--:--';
+  let h = d.getUTCHours(), min = d.getUTCMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return h + ':' + String(min).padStart(2,'0') + ' ' + ampm;
+}
+// Single formatting function used everywhere — no divergence
 function fmtHrs(n) { return (Math.round((n||0) * 100) / 100).toFixed(2); }
 function formatName(raw) {
-  if (!raw) return 'Unknown';
   const p = raw.split(',');
-  return p.length === 2 ? p[1].trim() + ' ' + p[0].trim() : raw.trim();
+  return p.length === 2 ? p[1].trim() + ' ' + p[0].trim() : raw;
 }
-function dateKey(d) {
-  if (!d) return '';
-  return d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+function diffMins(d1, d2) {
+  if (!d1 || !d2) return null;
+  return (d2 - d1) / 60000;
+}
+function dateKey(d) { return d ? fmtDateISO(d) : ''; }
+function getStartOfWeekSunday(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m-1, d));
+  dt.setUTCDate(dt.getUTCDate() - dt.getUTCDay());
+  return fmtDateISO(dt);
+}
+function fmtDateFull(isoStr) {
+  const [y,m,d] = isoStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y,m-1,d));
+  const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return `${days[dt.getUTCDay()]}, ${months[dt.getUTCMonth()]} ${d}, ${y}`;
+}
+function fmtDateShort(isoStr) {
+  const [y,m,d] = isoStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y,m-1,d));
+  const days   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${days[dt.getUTCDay()]} · ${months[dt.getUTCMonth()]} ${d}`;
 }
 
-// FILE HANDLING
-const dropZone = document.getElementById('upload-section');
+// ── BREAK DETECTION — pure function, always called fresh ──
+function detectBreaks(shifts, cfg) {
+  const byDate = {};
+  shifts.forEach(s => {
+    const k = dateKey(s.clockIn);
+    if (!k) return;
+    if (!byDate[k]) byDate[k] = [];
+    byDate[k].push(s);
+  });
+
+  return Object.keys(byDate).sort().map(dk => {
+    const dayShifts = byDate[dk].slice().sort((a,b) => a.clockIn - b.clockIn);
+
+    // Compute total hours from the shifts on this day (reflects any edits)
+    const totalHrs = dayShifts.reduce((sum, s) => sum + (s.hrs || 0), 0);
+
+    const gaps = [];
+    for (let i = 1; i < dayShifts.length; i++) {
+      const gapMin = diffMins(dayShifts[i-1].clockOut, dayShifts[i].clockIn);
+      if (gapMin !== null && gapMin >= 0) {
+        gaps.push({ gapMin, prevShift: dayShifts[i-1], nextShift: dayShifts[i] });
+      }
+    }
+
+    const annotatedShifts = dayShifts.map((s, si) => ({
+      ...s,
+      isLong:       s.hrs >= cfg.longShift,
+      isMultiPunch: dayShifts.length > 1,
+      gapAfter:  si < gaps.length   ? gaps[si]   : null,
+      gapBefore: si > 0             ? gaps[si-1]  : null,
+    }));
+
+    let hasQualifyingBreak = false;
+    gaps.forEach(g => {
+      if (g.gapMin >= cfg.minBreak && g.gapMin <= cfg.maxBreak) hasQualifyingBreak = true;
+    });
+    const needsBreak = totalHrs >= cfg.longShift;
+    const missingBreak = needsBreak && !hasQualifyingBreak && gaps.length === 0;
+    const badGaps = gaps.filter(g => g.gapMin < cfg.gapMin || g.gapMin > cfg.gapMax);
+
+    return {
+      date: dk,
+      shifts: annotatedShifts,
+      gaps,
+      badGaps,
+      totalHrs,
+      needsBreak,
+      missingBreak,
+      hasQualifyingBreak,
+      hasMultipleShifts: dayShifts.length > 1,
+      shiftCount: dayShifts.length,
+    };
+  });
+}
+
+// ── FILE HANDLING ──
+const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
-const errMsg = document.getElementById('err-msg');
+const errMsg    = document.getElementById('err-msg');
 
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('active'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('active');
+  if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+});
 fileInput.addEventListener('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); });
 
 function processFile(file) {
   errMsg.textContent = '';
+  const n = file.name.toLowerCase();
+  if (!n.endsWith('.xlsx') && !n.endsWith('.xls') && !n.endsWith('.csv')) {
+    errMsg.textContent = 'Please upload a valid .xlsx, .xls, or .csv file.'; return;
+  }
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      // RESTORED: cellDates: false is critical to prevent SheetJS from manipulating raw Excel date serials
-      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: false });
-      // RESTORED: raw: true is critical so numbers stay numbers and don't convert to localized strings
+      const wb   = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: false });
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: true });
       parseAndRender(rows);
     } catch(err) {
       console.error(err);
-      errMsg.textContent = 'Could not process this file. Verify format.';
+      errMsg.textContent = 'Could not process this file. Check that it is a valid payroll export.';
     }
   };
   reader.readAsArrayBuffer(file);
 }
 
-// RESTORED & IMPROVED: More forgiving regex for POS employee names
-const namePat = /^[A-Za-zÀ-ÖØ-öø-ÿ'\-]+(?:\s*,\s*|\s+)[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+/;
+const namePat = /^[A-Za-zÀ-ÖØ-öø-ÿ'\-]+,\s+[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+/;
 
 function parseAndRender(rows) {
-  let period = '', headerIdx = -1, riC = 6, oiC = 8;
+  let period = '', headerIdx = -1;
+  let riC = 6, oiC = 8;
 
   for (let i = 0; i < rows.length; i++) {
     const first = String(rows[i][0]||'').trim();
@@ -249,43 +1210,40 @@ function parseAndRender(rows) {
 
   const employees = [];
   let cur = null;
-  
-  // RESTORED: Better starting row detection
-  let startRow = headerIdx >= 0 ? headerIdx + 1 : 1;
-
-  for (let i = startRow; i < rows.length; i++) {
+  for (let i = (headerIdx >= 0 ? headerIdx + 1 : 4); i < rows.length; i++) {
     const row = rows[i];
     const first = String(row[0]||'').trim();
-    
     if (!first || first === 'Total' || first.startsWith('If you are using')) continue;
-    
     if (namePat.test(first)) {
       cur = { id: 'emp_' + employees.length, name: first, shifts: [] };
       employees.push(cur);
     } else if (cur) {
       const ciRaw = row[2];
       const ci = parseFloat(ciRaw);
-      
-      // ci > 0 relies on raw: true being passed to sheet_to_json so dates remain floats!
       if (ci > 0) {
         const parsedReg = parseFloat(row[riC]) || 0;
         const parsedOt  = parseFloat(row[oiC]) || 0;
         cur.shifts.push({
-          clockIn: excelToDate(ci),
-          clockOut: excelToDate(parseFloat(row[3])),
-          hrs: parsedReg + parsedOt,
+          role:        first,
+          clockInRaw:  ciRaw,
+          clockOutRaw: row[3],
+          clockIn:     excelToDate(ci),
+          clockOut:    excelToDate(parseFloat(row[3])),
+          status:      String(row[4]||'').trim(),
+          adj:         parseFloat(row[5]) || 0,
+          hrs:         parsedReg + parsedOt,
+          _originalHrs: parsedReg + parsedOt,  // track for edit highlighting
         });
       }
     }
   }
 
-  if (!employees.length) { 
-    errMsg.textContent = 'No records found. Make sure your file matches the POS export format.'; 
-    return; 
-  }
-  
+  if (!employees.length) { errMsg.textContent = 'No employee records found in this file.'; return; }
+  employees.sort((a,b) => a.name.localeCompare(b.name));
+
   parsedEmployees = employees;
-  
+  parsedPeriod = period;
+
   const empSel = document.getElementById('filter-emp');
   empSel.innerHTML = '<option value="">All employees</option>';
   employees.forEach(e => {
@@ -294,60 +1252,677 @@ function parseAndRender(rows) {
     empSel.appendChild(opt);
   });
 
-  document.getElementById('upload-section').classList.add('hidden');
-  document.getElementById('results').classList.remove('hidden');
-  renderTable();
+  if (period) {
+    document.getElementById('period-text').textContent = 'Pay period: ' + period;
+    document.getElementById('period-pill').style.display = 'inline-flex';
+  }
+
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+
+  selectEmployee(null);
 }
 
-function renderTable() {
+// ── SELECTION & UI CONTEXT ──
+function selectEmployee(employeeName) {
+  if (!employeeName) {
+    state.selectedEmployee = null;
+    document.getElementById('filter-emp').value = '';
+  } else {
+    const matched = parsedEmployees.find(e => e.name === employeeName);
+    state.selectedEmployee = matched || null;
+    if (matched) document.getElementById('filter-emp').value = employeeName;
+  }
+  syncContextUI();
+  applyFilters();
+}
+
+function handleDropdownSelection(value) {
+  selectEmployee(value || null);
+}
+
+function syncContextUI() {
+  const emp = state.selectedEmployee;
+  const headlineName = document.getElementById('audit-headline-name');
+  const headlineMeta = document.getElementById('audit-headline-meta');
+  const clearBtn     = document.getElementById('btn-clear-selection');
+  const footLabel    = document.getElementById('foot-scope-label');
+  const sidePanel    = document.getElementById('side-summary-panel');
+  const dbPanel      = document.getElementById('debug-panel');
+
+  if (emp) {
+    const fmt = formatName(emp.name);
+    headlineName.textContent = fmt;
+    headlineMeta.textContent = 'Viewing individual schedule and break compliance detail.';
+    clearBtn.style.display   = 'inline-flex';
+    footLabel.textContent    = `Total — ${fmt}`;
+    sidePanel.classList.add('active');
+    if (settings.debug) {
+      document.getElementById('db-id').textContent    = emp.id;
+      document.getElementById('db-name').textContent  = emp.name;
+      document.getElementById('db-count').textContent = emp.shifts.length;
+    }
+  } else {
+    headlineName.textContent = 'All Employees';
+    headlineMeta.textContent = 'Combined store statistics across all records.';
+    clearBtn.style.display   = 'none';
+    footLabel.textContent    = 'All employees';
+    sidePanel.classList.remove('active');
+    if (settings.debug) {
+      document.getElementById('db-id').textContent    = 'None';
+      document.getElementById('db-name').textContent  = 'All Employees';
+      document.getElementById('db-count').textContent = parsedEmployees.reduce((a,c) => a + c.shifts.length, 0);
+    }
+  }
+
+  if (settings.debug) dbPanel.style.display = 'flex';
+}
+
+// ── SETTINGS ──
+function applySettings() {
+  settings.minBreak  = parseInt(document.getElementById('min-break').value)   || 25;
+  settings.maxBreak  = parseInt(document.getElementById('max-break').value)   || 35;
+  settings.longShift = parseFloat(document.getElementById('long-shift').value) || 5;
+  settings.gapMin    = parseInt(document.getElementById('gap-min').value)      || 25;
+  settings.gapMax    = parseInt(document.getElementById('gap-max').value)      || 35;
+  settings.debug     = document.getElementById('debug-mode').checked;
+  document.getElementById('debug-panel').style.display = settings.debug ? 'flex' : 'none';
+  applyFilters();
+}
+
+// ── FILTERS ──
+function applyFilters() {
+  if (!parsedEmployees.length) return;
+  const filters = {
+    dateFrom: document.getElementById('filter-date-from').value,
+    dateTo:   document.getElementById('filter-date-to').value,
+    fMiss:    document.getElementById('f-miss-break').checked,
+    fShort:   document.getElementById('f-short-break').checked,
+    fLongB:   document.getElementById('f-long-break').checked,
+    fLongS:   document.getElementById('f-long-shift').checked,
+    fBadGap:  document.getElementById('f-bad-gap').checked,
+  };
+  filters.anyFlag = filters.fMiss || filters.fShort || filters.fLongB || filters.fLongS || filters.fBadGap;
+  renderTable(filters);
+}
+
+function clearFilters() {
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value   = '';
+  ['f-miss-break','f-short-break','f-long-break','f-long-shift','f-bad-gap']
+    .forEach(id => { document.getElementById(id).checked = false; });
+  selectEmployee(null);
+}
+
+// ── HOUR EDITING — mutates parsedEmployees, triggers recalc ──
+function updateShiftHoursInMemory(empIdx, dayDateStr, shiftIdx, newVal) {
+  const emp = parsedEmployees[empIdx];
+  if (!emp) return;
+  let seen = 0;
+  for (const s of emp.shifts) {
+    if (dateKey(s.clockIn) === dayDateStr) {
+      if (seen === shiftIdx) {
+        s.hrs = Math.max(0, parseFloat(newVal) || 0);
+        break;
+      }
+      seen++;
+    }
+  }
+  applyFilters();  // Full recalc from source of truth
+}
+
+// ── CLIPBOARD ──
+function executeHoursClipboardCopy(value, btn) {
+  navigator.clipboard.writeText(parseFloat(value).toFixed(2)).then(() => {
+    btn.classList.add('copied');
+    setTimeout(() => btn.classList.remove('copied'), 1600);
+  });
+}
+
+// ── DAILY MATRIX TOGGLE ──
+function toggleDailyMatrixRow(dateStr) {
+  state.expandedDailyDates[dateStr] = !state.expandedDailyDates[dateStr];
+  applyFilters();
+}
+
+// ── FILTER HELPER — true if day passes flag filters ──
+function dayPassesFlags(day, filters, cfg) {
+  if (!filters.anyFlag) return true;
+  return (
+    (filters.fMiss   && day.missingBreak) ||
+    (filters.fShort  && day.gaps.some(g => g.gapMin < cfg.minBreak)) ||
+    (filters.fLongB  && day.gaps.some(g => g.gapMin > cfg.maxBreak)) ||
+    (filters.fLongS  && day.shifts.some(s => s.isLong)) ||
+    (filters.fBadGap && day.badGaps.length > 0)
+  );
+}
+
+// ── MAIN RENDER — single pass, single source of truth ──
+function renderTable(filters) {
+  const cfg = settings;
+
+  // Remove old expanded shift tbody elements
+  document.querySelectorAll('.shift-group').forEach(el => el.remove());
   const tbody = document.getElementById('emp-body');
   tbody.innerHTML = '';
-  let grandTotal = 0;
 
-  parsedEmployees.forEach((emp, idx) => {
-    let total = emp.shifts.reduce((acc, s) => acc + s.hrs, 0);
-    grandTotal += total;
+  // Accumulators
+  let grandTotal     = 0;
+  let audShifts = 0, audMiss = 0, audRange = 0, audLong = 0, audGaps = 0;
+  let visibleCount   = 0;
 
+  // Maps built in ONE pass for all sections
+  const restaurantWeeklyMap  = {};   // { sundayKey: { empName: totalHrs } }
+  const dailyMatrixMap       = {};   // { dateStr: { total, emps: { empName: hrs } } }
+  const sidePanelWeeksMap    = {};   // { sundayKey: [dayObj, ...] }   (selected emp only)
+  let   sidePanelGrand       = 0;
+  let   sidePanelDaysCount   = 0;
+
+  parsedEmployees.forEach(emp => {
+    const isSelectedEmp = state.selectedEmployee && state.selectedEmployee.name !== emp.name;
+    if (isSelectedEmp) return; // Only process selected employee if one is selected
+
+    const days = detectBreaks(emp.shifts, cfg);
+
+    // Apply date & flag filters
+    const filteredDays = days.filter(day => {
+      if (filters.dateFrom && day.date < filters.dateFrom) return false;
+      if (filters.dateTo   && day.date > filters.dateTo)   return false;
+      if (!dayPassesFlags(day, filters, cfg))               return false;
+      return true;
+    });
+
+    // Skip employees with no matching days (when filters are active)
+    if (!filteredDays.length && (filters.anyFlag || filters.dateFrom || filters.dateTo)) return;
+
+    visibleCount++;
+    let empTotal = 0;
+
+    filteredDays.forEach(day => {
+      // ── Audit counters ──
+      audShifts += day.shiftCount;
+      if (day.missingBreak) audMiss++;
+      day.gaps.forEach(g => { if (g.gapMin < cfg.minBreak || g.gapMin > cfg.maxBreak) audRange++; });
+      day.badGaps.forEach(() => audGaps++);
+      day.shifts.forEach(s => { if (s.isLong) audLong++; });
+
+      // ── Employee total ──
+      empTotal += day.totalHrs;
+
+      // ── Weekly breakdown map ──
+      const wk = getStartOfWeekSunday(day.date);
+      if (!restaurantWeeklyMap[wk])          restaurantWeeklyMap[wk] = {};
+      if (!restaurantWeeklyMap[wk][emp.name]) restaurantWeeklyMap[wk][emp.name] = 0;
+      restaurantWeeklyMap[wk][emp.name] += day.totalHrs;
+
+      // ── Daily matrix map ──
+      if (!dailyMatrixMap[day.date]) dailyMatrixMap[day.date] = { total: 0, emps: {} };
+      if (!dailyMatrixMap[day.date].emps[emp.name]) dailyMatrixMap[day.date].emps[emp.name] = 0;
+      dailyMatrixMap[day.date].total += day.totalHrs;
+      dailyMatrixMap[day.date].emps[emp.name] += day.totalHrs;
+
+      // ── Side panel ──
+      if (state.selectedEmployee) {
+        const wkKey = getStartOfWeekSunday(day.date);
+        if (!sidePanelWeeksMap[wkKey]) sidePanelWeeksMap[wkKey] = [];
+        sidePanelWeeksMap[wkKey].push(day);
+      }
+    });
+
+    grandTotal += empTotal;
+    if (state.selectedEmployee) {
+      sidePanelGrand     = empTotal;
+      sidePanelDaysCount = filteredDays.length;
+    }
+
+    // ── Render employee row ──
+    const initials = formatName(emp.name).split(' ').map(w => w[0]).slice(0,2).join('');
+    const role     = emp.shifts.length ? emp.shifts[0].role : '';
+    const gid      = 'sg_' + emp.id;
+
+    const activeMiss  = filteredDays.filter(d => d.missingBreak).length;
+    let   activeRange = 0;
+    filteredDays.forEach(d => d.gaps.forEach(g => {
+      if (g.gapMin < cfg.minBreak || g.gapMin > cfg.maxBreak) activeRange++;
+    }));
+    let activeLong = 0;
+    filteredDays.forEach(d => d.shifts.forEach(s => { if (s.isLong) activeLong++; }));
+    const activeGaps = filteredDays.reduce((a,d) => a + d.badGaps.length, 0);
+
+    const flags = [];
+    if (activeMiss  > 0) flags.push(`<span class="flag-pill flag-miss">⚠ ${activeMiss} missing break${activeMiss > 1 ? 's' : ''}</span>`);
+    if (activeRange > 0) flags.push(`<span class="flag-pill flag-warn">↕ ${activeRange} break out of range</span>`);
+    if (activeLong  > 0) flags.push(`<span class="flag-pill flag-long">⏱ ${activeLong} long shift${activeLong > 1 ? 's' : ''}</span>`);
+    if (activeGaps  > 0) flags.push(`<span class="flag-pill flag-gap">⚡ ${activeGaps} gap variance</span>`);
+    if (!flags.length)    flags.push(`<span class="flag-pill flag-ok">✓ Compliant</span>`);
+
+    const isActive = !!(state.selectedEmployee && state.selectedEmployee.name === emp.name);
     const tr = document.createElement('tr');
-    tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
-    tr.innerHTML = `
-      <td class="px-4 py-3 font-semibold text-slate-800">${formatName(emp.name)}</td>
-      <td class="px-4 py-3 text-right font-mono font-bold text-slate-700">${fmtHrs(total)} hrs</td>
-      <td class="px-4 py-3 text-right">
-        <button onclick="copyHrs(${total}, this)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[11px] font-semibold">Copy</button>
+    tr.className = 'emp-row' +
+      (activeMiss > 0 ? ' has-critical' : activeRange > 0 || activeLong > 0 || activeGaps > 0 ? ' has-flags' : '') +
+      (isActive ? ' is-active' : '');
+
+    tr.innerHTML =
+      `<td>
+        <div class="emp-name-wrap">
+          <div class="emp-avatar">${initials}</div>
+          <div>
+            <div class="emp-name">${formatName(emp.name)}</div>
+            ${role ? `<div class="emp-role-badge">${role}</div>` : ''}
+            <div class="emp-flags">${flags.join('')}</div>
+          </div>
+          <svg class="chevron${isActive ? ' open' : ''}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
       </td>
-    `;
+      <td class="num" style="padding-right:40px;">
+        <span class="cell-tot">${fmtHrs(empTotal)}</span>
+      </td>
+      <td class="num" style="padding-right:18px;">
+        <div class="copy-btn-wrap">
+          <button class="copy-icon-btn" onclick="event.stopPropagation(); executeHoursClipboardCopy(${empTotal}, this)" title="Copy hours">
+            <span class="copy-tooltip">Copied!</span>
+            <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
+      </td>`;
+
+    tr.addEventListener('click', e => {
+      e.stopPropagation();
+      selectEmployee(isActive ? null : emp.name);
+    });
     tbody.appendChild(tr);
+
+    // ── Expanded shift detail group ──
+    const sg = document.createElement('tbody');
+    sg.className = 'shift-group' + (isActive ? ' open' : '');
+    sg.id = gid;
+
+    if (filteredDays.length) {
+      const htr = document.createElement('tr');
+      htr.className = 'shift-header-row';
+      htr.innerHTML = `<td colspan="3">Date &amp; Shift Sequences · Breaks · Editable Hours</td>`;
+      sg.appendChild(htr);
+
+      // Find the index of this employee in parsedEmployees for edit callback
+      const empIdx = parsedEmployees.findIndex(e => e.id === emp.id);
+
+      filteredDays.forEach(day => {
+        const dayHdr = document.createElement('tr');
+        dayHdr.className = 'day-header-row';
+        const dayFlags = [];
+        if (day.missingBreak)   dayFlags.push('⚠ Missing break');
+        if (day.shiftCount > 2) dayFlags.push(`⚡ ${day.shiftCount} punches`);
+        if (day.badGaps.length) dayFlags.push('Gap exception');
+        const missFlagHtml = day.missingBreak
+          ? `<span class="day-flag flag-miss">⚠ Missing break</span>` : '';
+        const otherFlagHtml = dayFlags
+          .filter(f => !f.startsWith('⚠'))
+          .map(f => `<span class="day-flag">${f}</span>`).join('');
+        dayHdr.innerHTML = `<td colspan="3">
+          <div class="day-header-inner">
+            <span class="day-header-date">${fmtDateFull(day.date)}</span>
+            <span class="day-hours-pill">${fmtHrs(day.totalHrs)} hrs</span>
+            ${missFlagHtml}${otherFlagHtml}
+          </div>
+        </td>`;
+        sg.appendChild(dayHdr);
+
+        if (day.shiftCount > 2) {
+          const cw = document.createElement('tr');
+          cw.className = 'consec-warn-row';
+          cw.innerHTML = `<td colspan="3">⚡ Multiple punches on this date — review for overlapping hours or missed break entries.</td>`;
+          sg.appendChild(cw);
+        }
+
+        day.shifts.forEach((s, si) => {
+          const str = document.createElement('tr');
+          str.className = 'shift-row' + (s.isLong && !day.hasMultipleShifts ? ' warn-long' : '');
+          const shiftFlagsHtml = s.isLong && !day.hasMultipleShifts
+            ? `<div class="shift-flags-line"><span class="flag-pill flag-long">⏱ ${fmtHrs(s.hrs)}h — long shift</span></div>`
+            : '';
+          const adjHtml = s.adj > 0 ? `<span class="adj-badge">Adj</span>` : '';
+          const roleHtml = s.role
+            ? `<span class="shift-meta-dot">·</span><span class="shift-role-text">${s.role}${s.status ? ' · ' + s.status : ''}</span>`
+            : '';
+          str.innerHTML = `<td colspan="3">
+            <div class="shift-inner">
+              <div class="shift-index-col">
+                <span class="shift-seq-badge">${si+1}</span>
+              </div>
+              <div class="shift-body">
+                <div class="shift-time">
+                  ${fmtTime(s.clockIn)}<span class="arrow">→</span>${fmtTime(s.clockOut)}
+                </div>
+                <div class="shift-meta-line">
+                  <span class="shift-seq-label">Shift ${si+1}/${day.shiftCount}</span>
+                  ${adjHtml}${roleHtml}
+                </div>
+                ${shiftFlagsHtml}
+              </div>
+              <div class="shift-hours-col">
+                <span class="shift-hours-label">Hours</span>
+                <input type="number" class="edit-hour-input${s.hrs !== s._originalHrs ? ' edited' : ''}"
+                  value="${fmtHrs(s.hrs)}" step="0.25" min="0" max="24"
+                  onclick="event.stopPropagation()"
+                  onchange="updateShiftHoursInMemory(${empIdx}, '${day.date}', ${si}, this.value)" />
+              </div>
+            </div>
+          </td>`;
+          sg.appendChild(str);
+
+          // Gap/break row after each shift (except the last)
+          if (si < day.gaps.length) {
+            const gap = day.gaps[si];
+            const gMin = Math.round(gap.gapMin);
+            const isOk    = gMin >= cfg.minBreak && gMin <= cfg.maxBreak;
+            const isShort = gMin < cfg.minBreak;
+            const isLong  = gMin > cfg.maxBreak;
+
+            let cls   = 'break-row break-ok';
+            let icon  = '✓';
+            let label = `Break — ${gMin} min (within ${cfg.minBreak}–${cfg.maxBreak} min)`;
+            let noteHtml = '';
+
+            if (isShort) {
+              cls = 'break-row break-short'; icon = '↕';
+              label = `Short break — ${gMin} min (min is ${cfg.minBreak} min)`;
+            } else if (isLong) {
+              cls = 'break-row break-long'; icon = '↕';
+              label = `Extended break — ${gMin} min (max is ${cfg.maxBreak} min)`;
+            }
+            if (gMin < cfg.gapMin || gMin > cfg.gapMax) {
+              noteHtml = `<span class="break-dur" style="color:var(--warn-text)">${gMin < cfg.gapMin ? `under ${cfg.gapMin} min gap` : `over ${cfg.gapMax} min gap`}</span>`;
+            }
+
+            const gbr = document.createElement('tr');
+            gbr.className = cls;
+            gbr.innerHTML = `<td colspan="3">
+              <div class="break-inner">
+                <span class="break-icon">${icon}</span>
+                <span class="break-label">${label}</span>
+                <span class="break-times">${fmtTime(gap.prevShift.clockOut)} → ${fmtTime(gap.nextShift.clockIn)}</span>
+                ${noteHtml}
+              </div>
+            </td>`;
+            sg.appendChild(gbr);
+          }
+        });
+
+        // Missing break warning (single-punch day)
+        if (day.missingBreak && day.shiftCount === 1) {
+          const mbr = document.createElement('tr');
+          mbr.className = 'break-row break-miss';
+          mbr.innerHTML = `<td colspan="3">
+            <div class="break-inner">
+              <span class="break-icon">⚠</span>
+              <span class="break-label">No break recorded — shift of ${fmtHrs(day.totalHrs)}h exceeds the ${cfg.longShift}h threshold</span>
+            </div>
+          </td>`;
+          sg.appendChild(mbr);
+        }
+      });
+    } else {
+      const empty = document.createElement('tr');
+      empty.innerHTML = `<td colspan="3" style="padding:12px 14px; color:var(--muted); font-size:12.5px;">No shifts match the current filters for this employee.</td>`;
+      sg.appendChild(empty);
+    }
+
+    tbody.parentNode.insertBefore(sg, tbody.nextSibling);
   });
 
+  // ── Update global totals display ──
   document.getElementById('restaurant-grand-hours').textContent = fmtHrs(grandTotal) + ' hrs';
-  document.getElementById('aud-shifts').textContent = parsedEmployees.reduce((a,c) => a + c.shifts.length, 0);
+  document.getElementById('foot-all').textContent = fmtHrs(grandTotal);
+
+  const scopeNote = state.selectedEmployee
+    ? formatName(state.selectedEmployee.name)
+    : visibleCount + ' employee' + (visibleCount !== 1 ? 's' : '');
+  document.getElementById('hours-scope-note').textContent = scopeNote;
+
+  // ── Audit metrics ──
+  document.getElementById('aud-shifts').textContent  = audShifts;
+  document.getElementById('aud-miss').textContent    = audMiss;
+  document.getElementById('aud-range').textContent   = audRange;
+  document.getElementById('aud-long').textContent    = audLong;
+  document.getElementById('aud-gaps').textContent    = audGaps;
+  document.getElementById('aud-shifts-sub').textContent = state.selectedEmployee
+    ? 'Filtered clock sequences'
+    : `Across ${visibleCount} staff`;
+  document.getElementById('aud-miss-sub').textContent  = audMiss ? 'Needs verification' : 'All clear';
+  document.getElementById('aud-range-sub').textContent = `${cfg.minBreak}–${cfg.maxBreak} min rule`;
+  document.getElementById('aud-long-sub').textContent  = `>${cfg.longShift}h threshold`;
+  document.getElementById('aud-gaps-sub').textContent  = `${cfg.gapMin}–${cfg.gapMax} min window`;
+
+  document.getElementById('no-results').style.display = visibleCount === 0 ? 'block' : 'none';
+
+  // ── Side panel ──
+  if (state.selectedEmployee) {
+    document.getElementById('side-summary-grand').textContent = fmtHrs(sidePanelGrand) + ' hrs';
+    document.getElementById('side-summary-days').textContent  = sidePanelDaysCount;
+    document.getElementById('side-summary-avg').textContent   = sidePanelDaysCount
+      ? fmtHrs(sidePanelGrand / sidePanelDaysCount) + ' hrs'
+      : '0.00 hrs';
+    document.getElementById('side-panel-title').textContent =
+      `Breakdown — ${formatName(state.selectedEmployee.name)}`;
+
+    const dynTarget = document.getElementById('side-breakdown-dynamic-target');
+    dynTarget.innerHTML = '';
+    const sortedWeeks = Object.keys(sidePanelWeeksMap).sort();
+    if (!sortedWeeks.length) {
+      dynTarget.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:14px 0;">No entries for this range.</div>';
+    } else {
+      sortedWeeks.forEach(sunISO => {
+        const daysList = sidePanelWeeksMap[sunISO].slice().sort((a,b) => a.date.localeCompare(b.date));
+        let wkTotal = 0;
+        const wkEl = document.createElement('div');
+        wkEl.className = 'week-container';
+        const wkHdr = document.createElement('div');
+        wkHdr.className = 'week-header-bar';
+        const wkDays = document.createElement('div');
+        wkDays.className = 'week-days-list';
+
+        daysList.forEach(day => {
+          wkTotal += day.totalHrs;
+          const dayRow = document.createElement('div');
+          dayRow.className = 'side-item';
+          dayRow.innerHTML = `
+            <span class="side-date">${fmtDateShort(day.date)}</span>
+            <span class="side-hours${day.totalHrs === 0 ? ' zero' : ''}">${fmtHrs(day.totalHrs)} hrs</span>`;
+          wkDays.appendChild(dayRow);
+        });
+
+        wkHdr.innerHTML = `
+          <span class="week-header-title">Week of ${fmtDateShort(sunISO)}</span>
+          <span class="week-header-total">${fmtHrs(wkTotal)} hrs</span>`;
+        wkEl.appendChild(wkHdr);
+        wkEl.appendChild(wkDays);
+        dynTarget.appendChild(wkEl);
+      });
+    }
+  }
+
+  // ── Weekly breakdown section ──
+  const weeklyGridTarget = document.getElementById('restaurant-weekly-grid-target');
+  weeklyGridTarget.innerHTML = '';
+  const sortedWeeks = Object.keys(restaurantWeeklyMap).sort();
+
+  if (!sortedWeeks.length) {
+    weeklyGridTarget.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:4px 0;">No weekly data for the current filters.</div>';
+  } else {
+    sortedWeeks.forEach(wk => {
+      const staffMap = restaurantWeeklyMap[wk];
+      let wkGrandTotal = 0;
+
+      const card = document.createElement('div');
+      card.className = 'weekly-breakdown-card';
+
+      const cardHdr = document.createElement('div');
+      cardHdr.className = 'weekly-breakdown-header';
+      cardHdr.textContent = 'Week of ' + fmtDateFull(wk);
+      card.appendChild(cardHdr);
+
+      const grid = document.createElement('div');
+      grid.className = 'weekly-breakdown-grid';
+
+      Object.keys(staffMap).sort().forEach(empName => {
+        const hrs = staffMap[empName];
+        wkGrandTotal += hrs;
+
+        const row = document.createElement('div');
+        row.className = 'weekly-emp-row';
+        row.innerHTML = `<span class="weekly-emp-name">${formatName(empName)}</span>
+          <span class="weekly-emp-hrs">${fmtHrs(hrs)} hrs</span>`;
+        grid.appendChild(row);
+      });
+
+      card.appendChild(grid);
+
+      const totRow = document.createElement('div');
+      totRow.className = 'weekly-grand-row';
+      totRow.innerHTML = `<span>Week total</span><strong>${fmtHrs(wkGrandTotal)} hrs</strong>`;
+      card.appendChild(totRow);
+
+      weeklyGridTarget.appendChild(card);
+    });
+  }
+
+  // ── Daily matrix ──
+  const dailyBody = document.getElementById('daily-matrix-body-target');
+  dailyBody.innerHTML = '';
+  const sortedDates = Object.keys(dailyMatrixMap).sort();
+
+  if (!sortedDates.length) {
+    dailyBody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:22px;color:var(--muted);font-size:13px;">No daily records for the current filters.</td></tr>`;
+  } else {
+    sortedDates.forEach(dateStr => {
+      const data       = dailyMatrixMap[dateStr];
+      const isExpanded = !!state.expandedDailyDates[dateStr];
+
+      const row = document.createElement('tr');
+      row.className = 'daily-table-hdr' + (isExpanded ? ' expanded' : '');
+      row.innerHTML = `
+        <td style="padding:10px 14px;"><strong>${fmtDateFull(dateStr)}</strong></td>
+        <td class="num" style="padding-right:30px; font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums;">${fmtHrs(data.total)} hrs</td>
+        <td style="width:48px; text-align:center; padding:10px 14px;">
+          <svg class="chevron${isExpanded ? ' open' : ''}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </td>`;
+      row.addEventListener('click', () => toggleDailyMatrixRow(dateStr));
+      dailyBody.appendChild(row);
+
+      if (isExpanded) {
+        const expandRow = document.createElement('tr');
+        expandRow.innerHTML = `<td colspan="3" style="padding:0;">
+          <div class="daily-expansion-box">
+            <div class="daily-drilldown-list">
+              ${Object.keys(data.emps).sort().map(empName => {
+                if (state.selectedEmployee && state.selectedEmployee.name !== empName) return '';
+                return `<div class="daily-drilldown-item">
+                  <span class="drilldown-name">${formatName(empName)}</span>
+                  <span class="drilldown-hrs">${fmtHrs(data.emps[empName])} hrs</span>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+        </td>`;
+        dailyBody.appendChild(expandRow);
+      }
+    });
+  }
 }
 
-function copyHrs(val, btn) {
-  navigator.clipboard.writeText(val.toFixed(2));
-  btn.textContent = "Copied!";
-  setTimeout(() => btn.textContent = "Copy", 1500);
-}
-
+// ── RESET ──
 function resetTool() {
-  document.getElementById('results').classList.add('hidden');
-  document.getElementById('upload-section').classList.remove('hidden');
-  document.getElementById('file-input').value = '';
+  parsedEmployees = []; parsedPeriod = '';
+  state.selectedEmployee     = null;
+  state.expandedDailyDates   = {};
+  document.getElementById('results').style.display       = 'none';
+  document.getElementById('upload-section').style.display = 'block';
+  document.getElementById('period-pill').style.display    = 'none';
+  document.getElementById('emp-body').innerHTML           = '';
+  document.getElementById('file-input').value             = '';
+  document.getElementById('side-summary-panel').classList.remove('active');
+  document.querySelectorAll('.shift-group').forEach(el => el.remove());
+  errMsg.textContent = '';
 }
 
+// ── CSV EXPORT ──
 function exportCSV() {
-  let lines = ['Employee,Total Hours'];
+  if (!parsedEmployees.length) return;
+  const cfg = settings;
+  const dateFrom = document.getElementById('filter-date-from').value;
+  const dateTo   = document.getElementById('filter-date-to').value;
+  const lines = [];
+
+  if (parsedPeriod) lines.push(`Pay Period,${parsedPeriod}`);
+  if (dateFrom || dateTo) lines.push(`Active Filter,${dateFrom||'Start'} to ${dateTo||'End'}`);
+  lines.push('');
+
+  lines.push('=== EMPLOYEE SUMMARIES ===');
+  lines.push('Employee,Total Hours');
+
+  let storeTotal = 0;
+  const weeklyMap = {};
+
   parsedEmployees.forEach(e => {
-    let tot = e.shifts.reduce((a,s) => a+s.hrs, 0);
-    lines.push(`"${formatName(e.name)}",${fmtHrs(tot)}`);
+    const days = detectBreaks(e.shifts, cfg);
+    let empTotal = 0;
+    days.forEach(day => {
+      if (dateFrom && day.date < dateFrom) return;
+      if (dateTo   && day.date > dateTo)   return;
+      const wk = getStartOfWeekSunday(day.date);
+      if (!weeklyMap[wk]) weeklyMap[wk] = {};
+      if (!weeklyMap[wk][e.name]) weeklyMap[wk][e.name] = 0;
+      weeklyMap[wk][e.name] += day.totalHrs;
+      empTotal += day.totalHrs;
+    });
+    storeTotal += empTotal;
+    lines.push(`"${formatName(e.name)}",${fmtHrs(empTotal)}`);
   });
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'payroll-summary.csv';
+  lines.push(`STORE TOTAL,${fmtHrs(storeTotal)}`);
+  lines.push('');
+
+  lines.push('=== WEEKLY STORE BREAKDOWN ===');
+  Object.keys(weeklyMap).sort().forEach(wk => {
+    lines.push(`[Week of ${wk}]`);
+    lines.push('Employee,Hours');
+    let wkTotal = 0;
+    Object.keys(weeklyMap[wk]).sort().forEach(n => {
+      wkTotal += weeklyMap[wk][n];
+      lines.push(`"${formatName(n)}",${fmtHrs(weeklyMap[wk][n])}`);
+    });
+    lines.push(`WEEK TOTAL,${fmtHrs(wkTotal)}`);
+    lines.push('');
+  });
+
+  lines.push('=== SHIFT DETAIL ===');
+  lines.push('Employee,Date,Day,Clock In,Clock Out,Hours,Role,Flags');
+  parsedEmployees.forEach(e => {
+    const days = detectBreaks(e.shifts, cfg);
+    days.forEach(day => {
+      if (dateFrom && day.date < dateFrom) return;
+      if (dateTo   && day.date > dateTo)   return;
+      const [y,m,d] = day.date.split('-').map(Number);
+      const weekday = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+        [new Date(Date.UTC(y,m-1,d)).getUTCDay()];
+      day.shifts.forEach((s, si) => {
+        const fl = [];
+        if (day.missingBreak && si === 0) fl.push('MISSING BREAK');
+        if (s.isLong) fl.push('LONG SHIFT');
+        if (day.shiftCount > 2) fl.push('MULTI PUNCH');
+        lines.push(`"${formatName(e.name)}","${day.date}","${weekday}","${fmtTime(s.clockIn)}","${fmtTime(s.clockOut)}",${fmtHrs(s.hrs)},"${s.role}","${fl.join('|')}"`);
+      });
+    });
+  });
+
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'payroll-review' + (parsedPeriod ? '-' + parsedPeriod.replace(/[^a-zA-Z0-9]/g,'-') : '') + '.csv';
   a.click();
+  URL.revokeObjectURL(url);
 }
+
 </script>
 </body>
 </html>

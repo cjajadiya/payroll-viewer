@@ -1,10 +1,1 @@
-{"timestamp":"00:00:06.480","source":"Server","level":"LOG","message":"It looks like you're trying to use TypeScript but do not have the required package(s) installed.\nInstalling dependencies\n\nIf you are not trying to use TypeScript, please remove the tsconfig.json file from your package root (and any TypeScript files in your app and pages directories).\n"}
-{"timestamp":"00:00:06.527","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:06.527","source":"Server","level":"LOG","message":"Installing devDependencies (npm):"}
-{"timestamp":"00:00:06.527","source":"Server","level":"LOG","message":"- typescript"}
-{"timestamp":"00:00:06.527","source":"Server","level":"LOG","message":"- @types/node"}
-{"timestamp":"00:00:06.527","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:08.576","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:08.581","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:08.581","source":"Server","level":"LOG","message":"  We detected TypeScript in your project and created a tsconfig.json file for you."}
-{"timestamp":"00:00:08.684","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:00.681","source":"Server","level":"LOG","message":""}

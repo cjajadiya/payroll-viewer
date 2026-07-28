@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Payroll Portal - CL113</title>
+  <title>Payroll Viewer — The Chopped Leaf CL113</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGNGC62wbJu56vvVzpOHcBZF8jhkcKbmGB83vKEkvhKnrKa2Z9uv9A1pZHFTvqP1gCCoC...==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="h-full text-slate-800 antialiased flex flex-col font-sans">
 
-  <!-- TOP NAV -->
+  <!-- HEADER -->
   <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur shadow-sm">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -27,12 +27,12 @@
     </div>
   </header>
 
-  <!-- MAIN WRAPPER -->
+  <!-- MAIN Shell -->
   <main class="flex-1 pb-16 pt-6">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
 
       <!-- UPLOAD DROP ZONE -->
-      <section id="upload-card" class="rounded-xl border-2 border-dashed border-slate-300 bg-white p-8 sm:p-12 text-center transition hover:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20">
+      <section id="upload-section" class="rounded-xl border-2 border-dashed border-slate-300 bg-white p-8 sm:p-12 text-center transition hover:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20">
         <div class="mx-auto flex max-w-xs flex-col items-center">
           <div class="rounded-full bg-slate-100 p-3 text-slate-600 mb-3">
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -40,190 +40,297 @@
             </svg>
           </div>
           <label for="file-input" class="cursor-pointer text-sm font-semibold text-emerald-600 hover:text-emerald-500 focus-within:outline-none">
-            <span>Upload a time card file</span>
-            <input id="file-input" type="file" accept=".xlsx,.xls,.csv" class="sr-only" onchange="handleFileSelect(event)">
+            <span>Drop your Time Card Detail file here</span>
+            <input id="file-input" type="file" accept=".xlsx,.xls,.csv" class="sr-only">
           </label>
-          <p class="mt-1 text-xs text-slate-500">XLSX, XLS, or CSV up to 10MB</p>
-          <div id="upload-spinner" class="hidden mt-4 flex items-center gap-2 text-xs text-emerald-600 font-medium">
-            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-            Processing workforce records...
-          </div>
-          <p id="upload-error" class="mt-3 text-xs text-rose-600 font-medium hidden" role="alert"></p>
+          <p class="mt-1 text-xs text-slate-500">or click to browse &mdash; .xlsx, .xls, or .csv</p>
+          <p id="err-msg" class="mt-3 text-xs text-rose-600 font-medium"></p>
         </div>
       </section>
 
-      <!-- RESULTS DASHBOARD (HIDDEN DEFAULT) -->
-      <div id="dashboard" class="hidden space-y-6">
+      <!-- RESULTS DASHBOARD -->
+      <div id="results" class="hidden space-y-6">
 
-        <!-- CONTROLS & COMPLIANCE BAR -->
-        <section aria-label="Compliance Configuration" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1">
-              <div>
-                <label for="min-break" class="block text-xs font-medium text-slate-600">Min Break (m)</label>
-                <input id="min-break" type="number" value="25" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-              </div>
-              <div>
-                <label for="max-break" class="block text-xs font-medium text-slate-600">Max Break (m)</label>
-                <input id="max-break" type="number" value="35" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-              </div>
-              <div>
-                <label for="long-shift" class="block text-xs font-medium text-slate-600">Long Shift (h)</label>
-                <input id="long-shift" type="number" value="5" step="0.5" class="mt-1 block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-              </div>
-              <div class="flex items-end">
-                <button onclick="recalculate()" class="w-full h-9 rounded-md bg-slate-900 text-xs font-semibold text-white shadow hover:bg-slate-800 transition">
-                  Apply Rules
-                </button>
-              </div>
+        <!-- ACTIVE AUDIT BANNER -->
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Active View</div>
+            <div class="text-lg font-bold text-slate-900" id="audit-headline-name">All Employees</div>
+            <div class="text-xs text-slate-500" id="audit-headline-meta">Combined store statistics across all records.</div>
+          </div>
+          <button class="hidden text-xs bg-slate-100 hover:bg-slate-200 font-semibold px-3 py-1.5 rounded-md border border-slate-300" id="btn-clear-selection" onclick="selectEmployee(null)">
+            ✕ Back to Store View
+          </button>
+        </div>
+
+        <!-- BREAK COMPLIANCE CONTROLS -->
+        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Break Compliance Rules</div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            <div>
+              <label class="block text-xs text-slate-500 font-medium">Min break (min)</label>
+              <input type="number" id="min-break" value="25" class="mt-1 block w-full rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 font-medium">Max break (min)</label>
+              <input type="number" id="max-break" value="35" class="mt-1 block w-full rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 font-medium">Long shift (hrs)</label>
+              <input type="number" id="long-shift" value="5" step="0.5" class="mt-1 block w-full rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 font-medium">Min gap (min)</label>
+              <input type="number" id="gap-min" value="25" class="mt-1 block w-full rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 font-medium">Max gap (min)</label>
+              <input type="number" id="gap-max" value="35" class="mt-1 block w-full rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
+            </div>
+            <div class="flex items-end">
+              <button onclick="applySettings()" class="w-full h-8 rounded-md bg-slate-900 text-xs font-semibold text-white shadow hover:bg-slate-800 transition">
+                Apply Rules
+              </button>
             </div>
           </div>
         </section>
 
-        <!-- STATS GRID -->
-        <section aria-label="Payroll Summary Metrics" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <dt class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Worked Hours</dt>
-            <dd id="metric-total-hours" class="mt-1 text-2xl font-bold tracking-tight text-slate-900">0.00</dd>
+        <!-- FILTERS BAR -->
+        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-wrap gap-4 items-end justify-between">
+          <div class="flex flex-wrap gap-3 items-end">
+            <div>
+              <label class="block text-xs text-slate-500 font-medium">Employee</label>
+              <select id="filter-emp" onchange="handleDropdownSelection(this.value)" class="mt-1 block w-40 rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                <option value="">All employees</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 font-medium">Date From</label>
+              <input type="date" id="filter-date-from" onchange="applyFilters()" class="mt-1 block rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 font-medium">Date To</label>
+              <input type="date" id="filter-date-to" onchange="applyFilters()" class="mt-1 block rounded-md border-slate-300 text-xs shadow-sm focus:border-emerald-500 focus:ring-emerald-500" />
+            </div>
           </div>
-          <div class="rounded-xl border border-rose-200 bg-rose-50/50 p-4 shadow-sm">
-            <dt class="text-xs font-medium text-rose-700 uppercase tracking-wider">Missing Breaks</dt>
-            <dd id="metric-missing-breaks" class="mt-1 text-2xl font-bold tracking-tight text-rose-700">0</dd>
-          </div>
-          <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-sm">
-            <dt class="text-xs font-medium text-amber-700 uppercase tracking-wider">Break Range Deviations</dt>
-            <dd id="metric-range-errors" class="mt-1 text-2xl font-bold tracking-tight text-amber-700">0</dd>
-          </div>
-          <div class="rounded-xl border border-blue-200 bg-blue-50/50 p-4 shadow-sm">
-            <dt class="text-xs font-medium text-blue-700 uppercase tracking-wider">Active Staff Count</dt>
-            <dd id="metric-staff-count" class="mt-1 text-2xl font-bold tracking-tight text-blue-700">0</dd>
+          <div class="flex gap-2">
+            <button onclick="exportCSV()" class="px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700">Export CSV</button>
+            <button onclick="window.print()" class="px-3 py-1.5 text-xs font-semibold rounded-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">Print Summary</button>
           </div>
         </section>
 
-        <!-- TABLE WORKSPACE -->
-        <section aria-label="Employee Hours" class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-              <thead class="bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-                <tr>
-                  <th scope="col" class="px-6 py-3">Employee Name</th>
-                  <th scope="col" class="px-6 py-3">Compliance Status</th>
-                  <th scope="col" class="px-6 py-3 text-right">Calculated Hours</th>
-                  <th scope="col" class="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="payroll-tbody" class="divide-y divide-slate-200">
-                <!-- Dynamic Rows Injected Here -->
-              </tbody>
-            </table>
+        <!-- METRICS CARDS -->
+        <section class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div class="text-[10px] font-bold uppercase text-slate-400">Shifts Reviewed</div>
+            <div class="text-xl font-bold text-slate-800" id="aud-shifts">—</div>
+            <div class="text-[11px] text-slate-400" id="aud-shifts-sub"></div>
+          </div>
+          <div class="rounded-xl border border-rose-200 bg-rose-50/50 p-3 shadow-sm">
+            <div class="text-[10px] font-bold uppercase text-rose-600">Missing Breaks</div>
+            <div class="text-xl font-bold text-rose-700" id="aud-miss">—</div>
+            <div class="text-[11px] text-rose-500" id="aud-miss-sub"></div>
+          </div>
+          <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-3 shadow-sm">
+            <div class="text-[10px] font-bold uppercase text-amber-600">Out of Range</div>
+            <div class="text-xl font-bold text-amber-700" id="aud-range">—</div>
+            <div class="text-[11px] text-amber-500" id="aud-range-sub"></div>
+          </div>
+          <div class="rounded-xl border border-orange-200 bg-orange-50/50 p-3 shadow-sm">
+            <div class="text-[10px] font-bold uppercase text-orange-600">Long Shifts</div>
+            <div class="text-xl font-bold text-orange-700" id="aud-long">—</div>
+            <div class="text-[11px] text-orange-500" id="aud-long-sub"></div>
+          </div>
+          <div class="rounded-xl border border-purple-200 bg-purple-50/50 p-3 shadow-sm">
+            <div class="text-[10px] font-bold uppercase text-purple-600">Unusual Gaps</div>
+            <div class="text-xl font-bold text-purple-700" id="aud-gaps">—</div>
+            <div class="text-[11px] text-purple-500" id="aud-gaps-sub"></div>
           </div>
         </section>
+
+        <!-- TOTAL HOURS SUMMARY -->
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex justify-between items-center">
+          <div>
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Hours &mdash; Active Scope</div>
+            <div class="text-xs text-slate-500" id="hours-scope-note"></div>
+          </div>
+          <div class="text-2xl font-bold text-emerald-600 font-mono" id="restaurant-grand-hours">0.00 hrs</div>
+        </div>
+
+        <!-- TABLE SECTION -->
+        <section class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-50 border-b border-slate-200 font-semibold uppercase text-slate-500">
+              <tr>
+                <th class="px-4 py-3">Employee</th>
+                <th class="px-4 py-3 text-right">Total Hours</th>
+                <th class="px-4 py-3 text-right w-16">Copy</th>
+              </tr>
+            </thead>
+            <tbody id="emp-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </section>
+
+        <!-- RESET -->
+        <div class="text-center pt-4">
+          <button onclick="resetTool()" class="text-xs text-slate-400 hover:text-slate-600 underline">← Upload a different file</button>
+        </div>
 
       </div>
     </div>
   </main>
 
-  <script>
-    let appState = { employees: [] };
+<script>
+// STATE
+let parsedEmployees = [];
+let parsedPeriod = '';
+let settings = { minBreak: 25, maxBreak: 35, longShift: 5, gapMin: 25, gapMax: 35 };
+let state = { selectedEmployee: null };
 
-    function handleFileSelect(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      document.getElementById('upload-spinner').classList.remove('hidden');
-      document.getElementById('upload-error').classList.add('hidden');
+function excelToDate(serial) {
+  if (!serial || isNaN(serial)) return null;
+  const ms = Date.UTC(1899, 11, 30) + Number(serial) * 86400000;
+  return new Date(ms);
+}
+function fmtHrs(n) { return (Math.round((n||0) * 100) / 100).toFixed(2); }
+function formatName(raw) {
+  const p = raw.split(',');
+  return p.length === 2 ? p[1].trim() + ' ' + p[0].trim() : raw;
+}
+function dateKey(d) {
+  if (!d) return '';
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+}
 
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
-          const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
-          parsePayrollRows(rows);
-          document.getElementById('upload-card').classList.add('hidden');
-          document.getElementById('dashboard').classList.remove('hidden');
-        } catch (err) {
-          showError("Failed to parse file structure. Verify file format.");
-        } finally {
-          document.getElementById('upload-spinner').classList.add('hidden');
-        }
-      };
-      reader.readAsArrayBuffer(file);
+// FILE HANDLING
+const dropZone = document.getElementById('upload-section');
+const fileInput = document.getElementById('file-input');
+const errMsg = document.getElementById('err-msg');
+
+fileInput.addEventListener('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); });
+
+function processFile(file) {
+  errMsg.textContent = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+      parseAndRender(rows);
+    } catch(err) {
+      errMsg.textContent = 'Could not process this file. Verify format.';
     }
+  };
+  reader.readAsArrayBuffer(file);
+}
 
-    function showError(msg) {
-      const errEl = document.getElementById('upload-error');
-      errEl.textContent = msg;
-      errEl.classList.remove('hidden');
+const namePat = /^[A-Za-zÀ-ÖØ-öø-ÿ'\-]+,\s+[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+/;
+
+function parseAndRender(rows) {
+  let period = '', headerIdx = -1, riC = 6, oiC = 8;
+
+  for (let i = 0; i < rows.length; i++) {
+    const first = String(rows[i][0]||'').trim();
+    if (first === 'Business Dates' && rows[i][1]) period = String(rows[i][1]).trim();
+    if (first === 'Name') {
+      const cols = rows[i].map(c => String(c).toLowerCase());
+      const ri = cols.findIndex(c => c.includes('regular hours'));
+      const oi = cols.findIndex(c => c.includes('overtime hours'));
+      if (ri >= 0) riC = ri;
+      if (oi >= 0) oiC = oi;
+      headerIdx = i; break;
     }
+  }
 
-    function parsePayrollRows(rows) {
-      const emps = [];
-      let current = null;
-      const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ'\-]+,\s+[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+/;
-
-      rows.forEach(r => {
-        const c0 = String(r[0] || '').trim();
-        if (nameRegex.test(c0)) {
-          current = { name: c0, hours: 0, flags: [] };
-          emps.push(current);
-        } else if (current && parseFloat(r[2]) > 0) {
-          const reg = parseFloat(r[6]) || 0;
-          const ot = parseFloat(r[8]) || 0;
-          current.hours += (reg + ot);
-        }
-      });
-      appState.employees = emps;
-      render();
+  const employees = [];
+  let cur = null;
+  for (let i = (headerIdx >= 0 ? headerIdx + 1 : 4); i < rows.length; i++) {
+    const row = rows[i];
+    const first = String(row[0]||'').trim();
+    if (!first || first === 'Total' || first.startsWith('If you are using')) continue;
+    if (namePat.test(first)) {
+      cur = { id: 'emp_' + employees.length, name: first, shifts: [] };
+      employees.push(cur);
+    } else if (cur) {
+      const ciRaw = row[2];
+      const ci = parseFloat(ciRaw);
+      if (ci > 0) {
+        const parsedReg = parseFloat(row[riC]) || 0;
+        const parsedOt  = parseFloat(row[oiC]) || 0;
+        cur.shifts.push({
+          clockIn: excelToDate(ci),
+          clockOut: excelToDate(parseFloat(row[3])),
+          hrs: parsedReg + parsedOt,
+        });
+      }
     }
+  }
 
-    function recalculate() { render(); }
+  if (!employees.length) { errMsg.textContent = 'No records found.'; return; }
+  parsedEmployees = employees;
+  
+  const empSel = document.getElementById('filter-emp');
+  empSel.innerHTML = '<option value="">All employees</option>';
+  employees.forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e.name; opt.textContent = formatName(e.name);
+    empSel.appendChild(opt);
+  });
 
-    function render() {
-      const tbody = document.getElementById('payroll-tbody');
-      tbody.innerHTML = '';
-      let totalStoreHours = 0;
+  document.getElementById('upload-section').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+  renderTable();
+}
 
-      appState.employees.forEach((emp, idx) => {
-        totalStoreHours += emp.hours;
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50/80 transition";
-        tr.innerHTML = `
-          <td class="px-6 py-4 font-medium text-slate-900">${escapeHtml(emp.name)}</td>
-          <td class="px-6 py-4">
-            <span class="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Compliant</span>
-          </td>
-          <td class="px-6 py-4 text-right">
-            <input type="number" step="0.25" min="0" value="${emp.hours.toFixed(2)}"
-              onchange="updateHours(${idx}, this.value)"
-              class="w-24 rounded-md border-slate-300 text-right font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500">
-          </td>
-          <td class="px-6 py-4 text-right">
-            <button onclick="copyHours(${emp.hours}, this)" class="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900">
-              Copy
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+function renderTable() {
+  const tbody = document.getElementById('emp-body');
+  tbody.innerHTML = '';
+  let grandTotal = 0;
 
-      document.getElementById('metric-total-hours').textContent = totalStoreHours.toFixed(2);
-      document.getElementById('metric-staff-count').textContent = appState.employees.length;
-    }
+  parsedEmployees.forEach((emp, idx) => {
+    let total = emp.shifts.reduce((acc, s) => acc + s.hrs, 0);
+    grandTotal += total;
 
-    function updateHours(idx, val) {
-      const parsed = parseFloat(val);
-      appState.employees[idx].hours = isNaN(parsed) || parsed < 0 ? 0 : parsed;
-      render();
-    }
+    const tr = document.createElement('tr');
+    tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+    tr.innerHTML = `
+      <td class="px-4 py-3 font-semibold text-slate-800">${formatName(emp.name)}</td>
+      <td class="px-4 py-3 text-right font-mono font-bold text-slate-700">${fmtHrs(total)} hrs</td>
+      <td class="px-4 py-3 text-right">
+        <button onclick="copyHrs(${total}, this)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[11px] font-semibold">Copy</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
 
-    function copyHours(val, btn) {
-      navigator.clipboard.writeText(val.toFixed(2));
-      btn.textContent = "Copied!";
-      setTimeout(() => btn.textContent = "Copy", 1500);
-    }
+  document.getElementById('restaurant-grand-hours').textContent = fmtHrs(grandTotal) + ' hrs';
+  document.getElementById('aud-shifts').textContent = parsedEmployees.reduce((a,c) => a + c.shifts.length, 0);
+}
 
-    function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-    }
-  </script>
+function copyHrs(val, btn) {
+  navigator.clipboard.writeText(val.toFixed(2));
+  btn.textContent = "Copied!";
+  setTimeout(() => btn.textContent = "Copy", 1500);
+}
+
+function resetTool() {
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('upload-section').classList.remove('hidden');
+  document.getElementById('file-input').value = '';
+}
+
+function exportCSV() {
+  let lines = ['Employee,Total Hours'];
+  parsedEmployees.forEach(e => {
+    let tot = e.shifts.reduce((a,s) => a+s.hrs, 0);
+    lines.push(`"${formatName(e.name)}",${fmtHrs(tot)}`);
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'payroll-summary.csv';
+  a.click();
+}
+</script>
 </body>
 </html>

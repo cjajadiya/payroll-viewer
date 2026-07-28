@@ -124,7 +124,7 @@ main { padding: 1.25rem 0; }
 .drop-icon svg { width: 20px; height: 20px; stroke: var(--muted); fill: none; stroke-width: 2; }
 .drop-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
 .drop-hint  { font-size: 13px; color: var(--muted); }
-.err-msg    { color: var(--danger-text); font-size: 13px; margin-top: 8px; min-height: 18px; text-align: center; }
+.err-msg    { color: var(--danger-text); font-size: 13px; margin-top: 8px; min-height: 18px; text-align: center; font-weight: bold; }
 
 /* ── SPLIT LAYOUT ── */
 .workspace-layout { display: flex; gap: 1.25rem; align-items: flex-start; }
@@ -370,11 +370,6 @@ thead th.num { text-align: right; }
 .edit-hour-input.edited { border-color: var(--accent); background: var(--accent-lt); }
 
 /* ── EXPANDED SHIFT GROUPS ── */
-/* ═══════════════════════════════════════════════════════════════
-   DATE & SHIFT SEQUENCES · BREAKS · EDITABLE HOURS
-   Full redesign — unified typography hierarchy, clean layout
-   ═══════════════════════════════════════════════════════════════ */
-
 .shift-group { display: none; }
 .shift-group.open { display: table-row-group; }
 
@@ -1051,11 +1046,22 @@ let state = {
 };
 
 // ── PURE HELPERS ──
-function excelToDate(serial) {
-  if (!serial || isNaN(serial)) return null;
-  const ms = Date.UTC(1899, 11, 30) + Number(serial) * 86400000;
-  return new Date(ms);
+function robustNormalizeDate(val) {
+  if (val == null || val === '') return null;
+  if (val instanceof Date) return val;
+  if (typeof val === 'number' && !isNaN(val)) {
+    return new Date(Date.UTC(1899, 11, 30) + val * 86400000);
+  }
+  const strVal = String(val).trim();
+  const numVal = parseFloat(strVal);
+  if (!isNaN(numVal) && isFinite(numVal) && numVal > 20000 && numVal < 60000) {
+    return new Date(Date.UTC(1899, 11, 30) + numVal * 86400000);
+  }
+  const d = new Date(strVal);
+  if (!isNaN(d.getTime())) return d;
+  return null;
 }
+
 function fmtDateISO(d) {
   if (!d) return '';
   return d.getUTCFullYear() + '-' +
@@ -1069,11 +1075,11 @@ function fmtTime(d) {
   h = h % 12 || 12;
   return h + ':' + String(min).padStart(2,'0') + ' ' + ampm;
 }
-// Single formatting function used everywhere — no divergence
 function fmtHrs(n) { return (Math.round((n||0) * 100) / 100).toFixed(2); }
 function formatName(raw) {
+  if (!raw) return 'Unknown';
   const p = raw.split(',');
-  return p.length === 2 ? p[1].trim() + ' ' + p[0].trim() : raw;
+  return p.length === 2 ? p[1].trim() + ' ' + p[0].trim() : raw.trim();
 }
 function diffMins(d1, d2) {
   if (!d1 || !d2) return null;
@@ -1101,7 +1107,7 @@ function fmtDateShort(isoStr) {
   return `${days[dt.getUTCDay()]} · ${months[dt.getUTCMonth()]} ${d}`;
 }
 
-// ── BREAK DETECTION — pure function, always called fresh ──
+// ── BREAK DETECTION ──
 function detectBreaks(shifts, cfg) {
   const byDate = {};
   shifts.forEach(s => {
@@ -1114,7 +1120,6 @@ function detectBreaks(shifts, cfg) {
   return Object.keys(byDate).sort().map(dk => {
     const dayShifts = byDate[dk].slice().sort((a,b) => a.clockIn - b.clockIn);
 
-    // Compute total hours from the shifts on this day (reflects any edits)
     const totalHrs = dayShifts.reduce((sum, s) => sum + (s.hrs || 0), 0);
 
     const gaps = [];
@@ -1189,64 +1194,96 @@ function processFile(file) {
   reader.readAsArrayBuffer(file);
 }
 
-const namePat = /^[A-Za-zÀ-ÖØ-öø-ÿ'\-]+,\s+[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+/;
+// Highly fault-tolerant regex for names
+const namePat = /^[A-Za-zÀ-ÖØ-öø-ÿ'\-]+(?:\s*,\s*|\s+)[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+/;
 
 function parseAndRender(rows) {
   let period = '', headerIdx = -1;
-  let riC = 6, oiC = 8;
+  let inCol = 2, outCol = 3, riC = 6, oiC = 8;
 
-  for (let i = 0; i < rows.length; i++) {
+  // SCAN FOR HEADERS DYNAMICALLY
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
     const first = String(rows[i][0]||'').trim();
     if (first === 'Business Dates' && rows[i][1]) period = String(rows[i][1]).trim();
-    if (first === 'Name') {
-      const cols = rows[i].map(c => String(c).toLowerCase());
-      const ri = cols.findIndex(c => c.includes('regular hours'));
-      const oi = cols.findIndex(c => c.includes('overtime hours'));
-      if (ri >= 0) riC = ri;
-      if (oi >= 0) oiC = oi;
-      headerIdx = i; break;
+    
+    const cols = rows[i].map(c => String(c).toLowerCase().trim());
+    if (cols.includes('name') || cols.includes('employee')) {
+      headerIdx = i;
+      const rIdx = cols.findIndex(c => c.includes('regular'));
+      const oIdx = cols.findIndex(c => c.includes('overtime'));
+      const inIdx = cols.findIndex(c => c.includes('in'));
+      const outIdx = cols.findIndex(c => c.includes('out'));
+      
+      if (rIdx >= 0) riC = rIdx;
+      if (oIdx >= 0) oiC = oIdx;
+      if (inIdx >= 0) inCol = inIdx;
+      if (outIdx >= 0) outCol = outIdx;
+      break;
     }
   }
 
   const employees = [];
   let cur = null;
-  for (let i = (headerIdx >= 0 ? headerIdx + 1 : 4); i < rows.length; i++) {
+  let startIdx = headerIdx >= 0 ? headerIdx + 1 : 1;
+
+  for (let i = startIdx; i < rows.length; i++) {
     const row = rows[i];
+    if (!row || row.length === 0) continue;
+
     const first = String(row[0]||'').trim();
     if (!first || first === 'Total' || first.startsWith('If you are using')) continue;
+
+    let rowHasName = false;
+    
+    // SAFE EMPLOYEE CREATION: Do not create duplicate objects
     if (namePat.test(first)) {
-      cur = { id: 'emp_' + employees.length, name: first, shifts: [] };
-      employees.push(cur);
-    } else if (cur) {
-      const ciRaw = row[2];
-      const ci = parseFloat(ciRaw);
-      if (ci > 0) {
-        const parsedReg = parseFloat(row[riC]) || 0;
-        const parsedOt  = parseFloat(row[oiC]) || 0;
+      rowHasName = true;
+      let existing = employees.find(e => e.name === first);
+      if (!existing) {
+        existing = { id: 'emp_' + employees.length, name: first, shifts: [] };
+        employees.push(existing);
+      }
+      cur = existing;
+    }
+
+    // SAFE SHIFT PROCESSING: Process hours even if on the exact same row as the name
+    if (cur) {
+      let ciDate = robustNormalizeDate(row[inCol]);
+      let coDate = robustNormalizeDate(row[outCol]);
+      
+      let parsedReg = parseFloat(row[riC]) || 0;
+      let parsedOt  = parseFloat(row[oiC]) || 0;
+      
+      if (ciDate || parsedReg > 0 || parsedOt > 0) {
         cur.shifts.push({
-          role:        first,
-          clockInRaw:  ciRaw,
-          clockOutRaw: row[3],
-          clockIn:     excelToDate(ci),
-          clockOut:    excelToDate(parseFloat(row[3])),
+          role:        rowHasName ? first : (cur.shifts.length ? cur.shifts[0].role : cur.name),
+          clockInRaw:  row[inCol],
+          clockOutRaw: row[outCol],
+          clockIn:     ciDate,
+          clockOut:    coDate,
           status:      String(row[4]||'').trim(),
           adj:         parseFloat(row[5]) || 0,
           hrs:         parsedReg + parsedOt,
-          _originalHrs: parsedReg + parsedOt,  // track for edit highlighting
+          _originalHrs: parsedReg + parsedOt,
         });
       }
     }
   }
 
-  if (!employees.length) { errMsg.textContent = 'No employee records found in this file.'; return; }
-  employees.sort((a,b) => a.name.localeCompare(b.name));
-
-  parsedEmployees = employees;
+  // FILTER EMPLOYEES WITH NO HOURS
+  parsedEmployees = employees.filter(e => e.shifts.length > 0);
+  
+  if (!parsedEmployees.length) { 
+    errMsg.textContent = 'No hours found. Make sure the file format matches your POS standard.'; 
+    return; 
+  }
+  
+  parsedEmployees.sort((a,b) => a.name.localeCompare(b.name));
   parsedPeriod = period;
 
   const empSel = document.getElementById('filter-emp');
   empSel.innerHTML = '<option value="">All employees</option>';
-  employees.forEach(e => {
+  parsedEmployees.forEach(e => {
     const opt = document.createElement('option');
     opt.value = e.name; opt.textContent = formatName(e.name);
     empSel.appendChild(opt);
@@ -1354,7 +1391,7 @@ function clearFilters() {
   selectEmployee(null);
 }
 
-// ── HOUR EDITING — mutates parsedEmployees, triggers recalc ──
+// ── HOUR EDITING ──
 function updateShiftHoursInMemory(empIdx, dayDateStr, shiftIdx, newVal) {
   const emp = parsedEmployees[empIdx];
   if (!emp) return;
@@ -1368,7 +1405,7 @@ function updateShiftHoursInMemory(empIdx, dayDateStr, shiftIdx, newVal) {
       seen++;
     }
   }
-  applyFilters();  // Full recalc from source of truth
+  applyFilters(); 
 }
 
 // ── CLIPBOARD ──
@@ -1385,7 +1422,7 @@ function toggleDailyMatrixRow(dateStr) {
   applyFilters();
 }
 
-// ── FILTER HELPER — true if day passes flag filters ──
+// ── FILTER HELPER ──
 function dayPassesFlags(day, filters, cfg) {
   if (!filters.anyFlag) return true;
   return (
@@ -1397,34 +1434,30 @@ function dayPassesFlags(day, filters, cfg) {
   );
 }
 
-// ── MAIN RENDER — single pass, single source of truth ──
+// ── MAIN RENDER ──
 function renderTable(filters) {
   const cfg = settings;
 
-  // Remove old expanded shift tbody elements
   document.querySelectorAll('.shift-group').forEach(el => el.remove());
   const tbody = document.getElementById('emp-body');
   tbody.innerHTML = '';
 
-  // Accumulators
   let grandTotal     = 0;
   let audShifts = 0, audMiss = 0, audRange = 0, audLong = 0, audGaps = 0;
   let visibleCount   = 0;
 
-  // Maps built in ONE pass for all sections
-  const restaurantWeeklyMap  = {};   // { sundayKey: { empName: totalHrs } }
-  const dailyMatrixMap       = {};   // { dateStr: { total, emps: { empName: hrs } } }
-  const sidePanelWeeksMap    = {};   // { sundayKey: [dayObj, ...] }   (selected emp only)
+  const restaurantWeeklyMap  = {};
+  const dailyMatrixMap       = {};
+  const sidePanelWeeksMap    = {};
   let   sidePanelGrand       = 0;
   let   sidePanelDaysCount   = 0;
 
   parsedEmployees.forEach(emp => {
     const isSelectedEmp = state.selectedEmployee && state.selectedEmployee.name !== emp.name;
-    if (isSelectedEmp) return; // Only process selected employee if one is selected
+    if (isSelectedEmp) return;
 
     const days = detectBreaks(emp.shifts, cfg);
 
-    // Apply date & flag filters
     const filteredDays = days.filter(day => {
       if (filters.dateFrom && day.date < filters.dateFrom) return false;
       if (filters.dateTo   && day.date > filters.dateTo)   return false;
@@ -1432,36 +1465,30 @@ function renderTable(filters) {
       return true;
     });
 
-    // Skip employees with no matching days (when filters are active)
     if (!filteredDays.length && (filters.anyFlag || filters.dateFrom || filters.dateTo)) return;
 
     visibleCount++;
     let empTotal = 0;
 
     filteredDays.forEach(day => {
-      // ── Audit counters ──
       audShifts += day.shiftCount;
       if (day.missingBreak) audMiss++;
       day.gaps.forEach(g => { if (g.gapMin < cfg.minBreak || g.gapMin > cfg.maxBreak) audRange++; });
       day.badGaps.forEach(() => audGaps++);
       day.shifts.forEach(s => { if (s.isLong) audLong++; });
 
-      // ── Employee total ──
       empTotal += day.totalHrs;
 
-      // ── Weekly breakdown map ──
       const wk = getStartOfWeekSunday(day.date);
       if (!restaurantWeeklyMap[wk])          restaurantWeeklyMap[wk] = {};
       if (!restaurantWeeklyMap[wk][emp.name]) restaurantWeeklyMap[wk][emp.name] = 0;
       restaurantWeeklyMap[wk][emp.name] += day.totalHrs;
 
-      // ── Daily matrix map ──
       if (!dailyMatrixMap[day.date]) dailyMatrixMap[day.date] = { total: 0, emps: {} };
       if (!dailyMatrixMap[day.date].emps[emp.name]) dailyMatrixMap[day.date].emps[emp.name] = 0;
       dailyMatrixMap[day.date].total += day.totalHrs;
       dailyMatrixMap[day.date].emps[emp.name] += day.totalHrs;
 
-      // ── Side panel ──
       if (state.selectedEmployee) {
         const wkKey = getStartOfWeekSunday(day.date);
         if (!sidePanelWeeksMap[wkKey]) sidePanelWeeksMap[wkKey] = [];
@@ -1475,7 +1502,6 @@ function renderTable(filters) {
       sidePanelDaysCount = filteredDays.length;
     }
 
-    // ── Render employee row ──
     const initials = formatName(emp.name).split(' ').map(w => w[0]).slice(0,2).join('');
     const role     = emp.shifts.length ? emp.shifts[0].role : '';
     const gid      = 'sg_' + emp.id;
@@ -1532,7 +1558,6 @@ function renderTable(filters) {
     });
     tbody.appendChild(tr);
 
-    // ── Expanded shift detail group ──
     const sg = document.createElement('tbody');
     sg.className = 'shift-group' + (isActive ? ' open' : '');
     sg.id = gid;
@@ -1543,7 +1568,6 @@ function renderTable(filters) {
       htr.innerHTML = `<td colspan="3">Date &amp; Shift Sequences · Breaks · Editable Hours</td>`;
       sg.appendChild(htr);
 
-      // Find the index of this employee in parsedEmployees for edit callback
       const empIdx = parsedEmployees.findIndex(e => e.id === emp.id);
 
       filteredDays.forEach(day => {
@@ -1610,7 +1634,6 @@ function renderTable(filters) {
           </td>`;
           sg.appendChild(str);
 
-          // Gap/break row after each shift (except the last)
           if (si < day.gaps.length) {
             const gap = day.gaps[si];
             const gMin = Math.round(gap.gapMin);
@@ -1648,7 +1671,6 @@ function renderTable(filters) {
           }
         });
 
-        // Missing break warning (single-punch day)
         if (day.missingBreak && day.shiftCount === 1) {
           const mbr = document.createElement('tr');
           mbr.className = 'break-row break-miss';
@@ -1670,7 +1692,6 @@ function renderTable(filters) {
     tbody.parentNode.insertBefore(sg, tbody.nextSibling);
   });
 
-  // ── Update global totals display ──
   document.getElementById('restaurant-grand-hours').textContent = fmtHrs(grandTotal) + ' hrs';
   document.getElementById('foot-all').textContent = fmtHrs(grandTotal);
 
@@ -1679,7 +1700,6 @@ function renderTable(filters) {
     : visibleCount + ' employee' + (visibleCount !== 1 ? 's' : '');
   document.getElementById('hours-scope-note').textContent = scopeNote;
 
-  // ── Audit metrics ──
   document.getElementById('aud-shifts').textContent  = audShifts;
   document.getElementById('aud-miss').textContent    = audMiss;
   document.getElementById('aud-range').textContent   = audRange;
@@ -1695,7 +1715,6 @@ function renderTable(filters) {
 
   document.getElementById('no-results').style.display = visibleCount === 0 ? 'block' : 'none';
 
-  // ── Side panel ──
   if (state.selectedEmployee) {
     document.getElementById('side-summary-grand').textContent = fmtHrs(sidePanelGrand) + ' hrs';
     document.getElementById('side-summary-days').textContent  = sidePanelDaysCount;
@@ -1741,7 +1760,6 @@ function renderTable(filters) {
     }
   }
 
-  // ── Weekly breakdown section ──
   const weeklyGridTarget = document.getElementById('restaurant-weekly-grid-target');
   weeklyGridTarget.innerHTML = '';
   const sortedWeeks = Object.keys(restaurantWeeklyMap).sort();
@@ -1786,7 +1804,6 @@ function renderTable(filters) {
     });
   }
 
-  // ── Daily matrix ──
   const dailyBody = document.getElementById('daily-matrix-body-target');
   dailyBody.innerHTML = '';
   const sortedDates = Object.keys(dailyMatrixMap).sort();

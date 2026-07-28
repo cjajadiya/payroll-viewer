@@ -30,5 +30,13 @@
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cjajadiya/payroll-viewer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cjajadiya/payroll-viewer/issues"
+  },
+  "homepage": "https://github.com/cjajadiya/payroll-viewer#readme"
 }

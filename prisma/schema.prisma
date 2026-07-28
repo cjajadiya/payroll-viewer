@@ -7,28 +7,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum Role {
-  ADMIN
-  PAYROLL_MANAGER
-  EMPLOYEE
-}
-
-model User {
-  id           String      @id @default(uuid())
-  email        String      @unique
-  passwordHash String
-  role         Role        @default(EMPLOYEE)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  auditLogs    AuditLog[]
-}
-
 model Employee {
   id            String         @id @default(uuid())
-  externalEmpId String         @unique
-  firstName     String
-  lastName      String
-  storeCode     String         @default("CL113")
+  name          String         @unique
   shifts        PayrollShift[]
   createdAt     DateTime       @default(now())
 }
@@ -39,19 +20,8 @@ model PayrollShift {
   employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   clockIn       DateTime
   clockOut      DateTime
-  regularHours  Float
-  overtimeHours Float
-  isAdjusted    Boolean  @default(false)
+  totalHours    Float
   createdAt     DateTime @default(now())
 
   @@index([employeeId, clockIn])
-}
-
-model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  action    String
-  payload   Json
-  timestamp DateTime @default(now())
 }

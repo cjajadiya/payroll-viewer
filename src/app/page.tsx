@@ -3,7 +3,6 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { UploadCloud, CheckCircle2, AlertCircle, Loader2, Search, ArrowRight, Clock, Users } from 'lucide-react';
 
-// --- Types & Interfaces ---
 interface Employee {
   id: string;
   name: string;
@@ -11,7 +10,6 @@ interface Employee {
   shifts: number;
 }
 
-// --- Pure Business Logic ---
 const namePat = /^[A-Za-zÀ-ÖØ-öø-ÿ'\-]+(?:\s*,\s*|\s+)[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+/;
 
 function formatName(raw: string) {
@@ -24,12 +22,10 @@ function getInitials(name: string) {
   return formatName(name).split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 }
 
-// THIS IS THE MISSING FUNCTION!
 function fmtHrs(n: number) {
   return (Math.round((n || 0) * 100) / 100).toFixed(2);
 }
 
-// --- Main Enterprise Component ---
 export default function PayrollDashboard() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [status, setStatus] = useState<'idle' | 'dragging' | 'processing' | 'success' | 'error'>('idle');
@@ -38,7 +34,6 @@ export default function PayrollDashboard() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // -- Drag & Drop Handlers --
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setStatus('dragging');
@@ -61,13 +56,11 @@ export default function PayrollDashboard() {
     if (file) processFile(file);
   };
 
-  // -- Core Processing Engine --
   const processFile = async (file: File) => {
     setStatus('processing');
     setErrorMsg('');
 
     try {
-      // Artificial delay for premium UX feel
       await new Promise(resolve => setTimeout(resolve, 800));
 
       const buffer = await file.arrayBuffer();
@@ -135,7 +128,6 @@ export default function PayrollDashboard() {
     }
   };
 
-  // -- Derived State --
   const filteredEmployees = useMemo(() => {
     return employees.filter(emp => emp.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [employees, searchQuery]);
@@ -145,11 +137,10 @@ export default function PayrollDashboard() {
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
       
-      {/* Premium Top Navigation */}
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)] px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 flex items-center justify-center bg-indigo-600 rounded-[8px] shadow-sm shadow-indigo-200">
-            <Clock className="w-4 h-4 text-white" />
+          <div className="h-8 w-8 flex items-center justify-center bg-white rounded-[8px] border border-slate-200 overflow-hidden shadow-sm">
+            <img src="/the_chopped_leaf_logo.jpg" alt="Chopped Leaf Logo" className="w-full h-full object-contain p-0.5" />
           </div>
           <div>
             <h1 className="text-sm font-semibold tracking-tight text-slate-900 leading-none">Chopped Leaf</h1>
@@ -171,7 +162,6 @@ export default function PayrollDashboard() {
 
       <main className="max-w-[1040px] w-full mx-auto p-6 md:p-8 space-y-8 animate-in fade-in duration-500">
         
-        {/* State: Upload Wizard */}
         {(status === 'idle' || status === 'dragging' || status === 'processing' || status === 'error') && (
           <div className="max-w-2xl mx-auto mt-12">
             <div className="text-center mb-8">
@@ -214,11 +204,9 @@ export default function PayrollDashboard() {
           </div>
         )}
 
-        {/* State: Data Dashboard */}
         {status === 'success' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
             
-            {/* KPI Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                 <div className="flex items-center gap-2 text-slate-500 mb-2">
@@ -240,7 +228,6 @@ export default function PayrollDashboard() {
               </div>
             </div>
 
-            {/* High-Density Data Table */}
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
               <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
                 <h3 className="text-sm font-semibold text-slate-900">Shift Roster</h3>
